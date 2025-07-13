@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,7 @@ interface Debt {
 
 const Index = () => {
   const [items, setItems] = useState<Item[]>([]);
-  const [persons, setPersons] = useState<Person[]>([{ id: '1', name: 'Person 1' }]);
+  const [persons, setPersons] = useState<Person[]>([]);
   const [newItemName, setNewItemName] = useState<string>('');
   const [newItemAmount, setNewItemAmount] = useState<string>('');
   const [newPersonName, setNewPersonName] = useState<string>('');
@@ -143,15 +142,13 @@ const Index = () => {
   };
 
   const handleDeletePerson = (id: string) => {
-    if (persons.length > 1) {
-      setPersons(persons.filter(person => person.id !== id));
-      // Remove this person from all items
-      setItems(items.map(item => ({
-        ...item,
-        sharedBy: item.sharedBy.filter(personId => personId !== id),
-        paidBy: item.paidBy === id ? '' : item.paidBy
-      })).filter(item => item.sharedBy.length > 0 && item.paidBy));
-    }
+    setPersons(persons.filter(person => person.id !== id));
+    // Remove this person from all items
+    setItems(items.map(item => ({
+      ...item,
+      sharedBy: item.sharedBy.filter(personId => personId !== id),
+      paidBy: item.paidBy === id ? '' : item.paidBy
+    })).filter(item => item.sharedBy.length > 0 && item.paidBy));
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,10 +214,19 @@ const Index = () => {
                     {/* Add Item Button */}
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">Items to Share</Label>
-                      <Button onClick={openItemDialog} className="w-full h-12">
+                      <Button 
+                        onClick={openItemDialog} 
+                        className="w-full h-12"
+                        disabled={persons.length === 0}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add New Item
                       </Button>
+                      {persons.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center">
+                          Add people first to create items
+                        </p>
+                      )}
                     </div>
 
                     {/* Items List */}
@@ -285,20 +291,25 @@ const Index = () => {
 
                     {/* Persons List */}
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {persons.map((person) => (
-                        <div
-                          key={person.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <span className="font-medium text-gray-800">{person.name}</span>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Owes: {formatCurrency(calculatePersonShare(person.id))} | 
-                              Paid: {formatCurrency(calculatePersonPaid(person.id))}
+                      {persons.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No people added yet</p>
+                        </div>
+                      ) : (
+                        persons.map((person) => (
+                          <div
+                            key={person.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <span className="font-medium text-gray-800">{person.name}</span>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Owes: {formatCurrency(calculatePersonShare(person.id))} | 
+                                Paid: {formatCurrency(calculatePersonPaid(person.id))}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {persons.length > 1 && (
+                            <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -307,10 +318,10 @@ const Index = () => {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -380,7 +391,7 @@ const Index = () => {
             <Button
               onClick={() => {
                 setItems([]);
-                setPersons([{ id: '1', name: 'Person 1' }]);
+                setPersons([]);
                 setNewItemName('');
                 setNewItemAmount('');
                 setNewPersonName('');
