@@ -7,18 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Users, Plus, Trash2, DollarSign, List, X } from 'lucide-react';
+import { Calculator, Users, Plus, Trash2, DollarSign, List, X, ArrowRight } from 'lucide-react';
 
 interface Item {
   id: string;
   name: string;
   amount: number;
   sharedBy: string[]; // Array of person IDs who share this item
+  paidBy: string; // Person ID who paid for this item
 }
 
 interface Person {
   id: string;
   name: string;
+}
+
+interface Debt {
+  from: string;
+  to: string;
+  amount: number;
 }
 
 const Index = () => {
@@ -29,6 +36,7 @@ const Index = () => {
   const [newPersonName, setNewPersonName] = useState<string>('');
   const [showItemDialog, setShowItemDialog] = useState<boolean>(false);
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
+  const [selectedPayer, setSelectedPayer] = useState<string>('');
 
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
@@ -48,18 +56,73 @@ const Index = () => {
     }, 0);
   };
 
+  const calculatePersonPaid = (personId: string) => {
+    return items.reduce((sum, item) => {
+      if (item.paidBy === personId) {
+        return sum + item.amount;
+      }
+      return sum;
+    }, 0);
+  };
+
+  const calculateDebts = (): Debt[] => {
+    const balances: { [personId: string]: number } = {};
+    
+    // Initialize balances
+    persons.forEach(person => {
+      balances[person.id] = 0;
+    });
+
+    // Calculate net balance for each person (what they paid minus what they owe)
+    persons.forEach(person => {
+      const paid = calculatePersonPaid(person.id);
+      const owes = calculatePersonShare(person.id);
+      balances[person.id] = paid - owes;
+    });
+
+    // Create debts array
+    const debts: Debt[] = [];
+    const creditors = persons.filter(p => balances[p.id] > 0.01).sort((a, b) => balances[b.id] - balances[a.id]);
+    const debtors = persons.filter(p => balances[p.id] < -0.01).sort((a, b) => balances[a.id] - balances[b.id]);
+
+    let i = 0, j = 0;
+    while (i < creditors.length && j < debtors.length) {
+      const creditor = creditors[i];
+      const debtor = debtors[j];
+      const amount = Math.min(balances[creditor.id], Math.abs(balances[debtor.id]));
+
+      if (amount > 0.01) {
+        debts.push({
+          from: debtor.id,
+          to: creditor.id,
+          amount: amount
+        });
+
+        balances[creditor.id] -= amount;
+        balances[debtor.id] += amount;
+      }
+
+      if (Math.abs(balances[creditor.id]) < 0.01) i++;
+      if (Math.abs(balances[debtor.id]) < 0.01) j++;
+    }
+
+    return debts;
+  };
+
   const handleAddItem = () => {
-    if (newItemName.trim() && parseFloat(newItemAmount) > 0 && selectedPersons.length > 0) {
+    if (newItemName.trim() && parseFloat(newItemAmount) > 0 && selectedPersons.length > 0 && selectedPayer) {
       const newItem: Item = {
         id: Date.now().toString(),
         name: newItemName.trim(),
         amount: parseFloat(newItemAmount),
         sharedBy: selectedPersons,
+        paidBy: selectedPayer,
       };
       setItems([...items, newItem]);
       setNewItemName('');
       setNewItemAmount('');
       setSelectedPersons([]);
+      setSelectedPayer('');
       setShowItemDialog(false);
     }
   };
@@ -85,8 +148,9 @@ const Index = () => {
       // Remove this person from all items
       setItems(items.map(item => ({
         ...item,
-        sharedBy: item.sharedBy.filter(personId => personId !== id)
-      })).filter(item => item.sharedBy.length > 0));
+        sharedBy: item.sharedBy.filter(personId => personId !== id),
+        paidBy: item.paidBy === id ? '' : item.paidBy
+      })).filter(item => item.sharedBy.length > 0 && item.paidBy));
     }
   };
 
@@ -114,7 +178,10 @@ const Index = () => {
   const openItemDialog = () => {
     setShowItemDialog(true);
     setSelectedPersons([]);
+    setSelectedPayer('');
   };
+
+  const debts = calculateDebts();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 p-4">
@@ -176,6 +243,9 @@ const Index = () => {
                                   persons.find(p => p.id === id)?.name
                                 ).join(', ')}
                               </div>
+                              <div className="text-xs text-blue-600 mt-1">
+                                Paid by: {persons.find(p => p.id === item.paidBy)?.name}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-green-600">
@@ -222,11 +292,12 @@ const Index = () => {
                         >
                           <div className="flex-1">
                             <span className="font-medium text-gray-800">{person.name}</span>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Owes: {formatCurrency(calculatePersonShare(person.id))} | 
+                              Paid: {formatCurrency(calculatePersonPaid(person.id))}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-blue-600">
-                              {formatCurrency(calculatePersonShare(person.id))}
-                            </span>
                             {persons.length > 1 && (
                               <Button
                                 variant="ghost"
@@ -274,6 +345,36 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Debts Card */}
+            {debts.length > 0 && (
+              <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <ArrowRight className="h-5 w-5 text-green-600" />
+                    Who Owes Whom
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {debts.map((debt, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-800">
+                          {persons.find(p => p.id === debt.from)?.name}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                        <span className="font-medium text-gray-800">
+                          {persons.find(p => p.id === debt.to)?.name}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-red-600">
+                        {formatCurrency(debt.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Reset Button */}
             <Button
@@ -333,6 +434,22 @@ const Index = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Who paid for this?</Label>
+                  <Select value={selectedPayer} onValueChange={setSelectedPayer}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select who paid" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {persons.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>
+                          {person.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Who shares this item?</Label>
                     <Button
@@ -367,7 +484,7 @@ const Index = () => {
                   </Button>
                   <Button
                     onClick={handleAddItem}
-                    disabled={!newItemName.trim() || !parseFloat(newItemAmount) || selectedPersons.length === 0}
+                    disabled={!newItemName.trim() || !parseFloat(newItemAmount) || selectedPersons.length === 0 || !selectedPayer}
                     className="flex-1"
                   >
                     Add Item
