@@ -9,7 +9,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Pastel Orange Glassmorphism Theme - Better Contrast */
+    /* Vibrant Orange Glassmorphism Theme - Better Contrast */
     --background: 28 100% 97%;
     --foreground: 25 25% 15%;
 
@@ -19,16 +19,16 @@ All colors MUST be HSL.
     --popover: 0 0% 100% / 0.95;
     --popover-foreground: 25 25% 15%;
 
-    --primary: 30 60% 70%;
+    --primary: 25 85% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 50% 92%;
+    --secondary: 28 80% 88%;
     --secondary-foreground: 25 25% 15%;
 
     --muted: 30 20% 93%;
     --muted-foreground: 25 15% 35%;
 
-    --accent: 35 70% 75%;
+    --accent: 30 90% 65%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -36,17 +36,17 @@ All colors MUST be HSL.
 
     --border: 30 30% 85%;
     --input: 30 20% 96%;
-    --ring: 30 60% 70%;
+    --ring: 25 85% 60%;
 
     --radius: 0.75rem;
 
-    /* Pastel Orange Glass Variables - Enhanced Readability */
+    /* Vibrant Orange Glass Variables - Enhanced Readability */
     --glass-bg: 0 0% 100% / 0.85;
-    --glass-border: 35 40% 80% / 0.3;
-    --glass-shadow: 30 60% 50% / 0.15;
-    --gradient-primary: linear-gradient(135deg, hsl(30 60% 70%), hsl(35 70% 75%));
-    --gradient-secondary: linear-gradient(135deg, hsl(35 50% 92%), hsl(32 40% 95%));
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(35 20% 98% / 0.8));
+    --glass-border: 28 60% 75% / 0.3;
+    --glass-shadow: 25 85% 45% / 0.15;
+    --gradient-primary: linear-gradient(135deg, hsl(25 85% 60%), hsl(30 90% 65%));
+    --gradient-secondary: linear-gradient(135deg, hsl(28 80% 88%), hsl(30 70% 90%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9), hsl(28 30% 96% / 0.8));
 
     --sidebar-background: 28 100% 98%;
     --sidebar-foreground: 20 14.3% 4.1%;

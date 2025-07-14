@@ -189,7 +189,7 @@ const Index = () => {
     setSelectedPayer('');
   };
   const debts = calculateDebts();
-  return <div className="min-h-screen bg-gradient-to-br from-orange-300 via-orange-200 to-orange-100 p-4 font-inter">
+  return <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 p-4 font-inter">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
