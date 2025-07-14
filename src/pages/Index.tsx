@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, Users, Plus, Trash2, DollarSign, List, X, ArrowRight } from 'lucide-react';
-
 interface Item {
   id: string;
   name: string;
@@ -15,18 +14,15 @@ interface Item {
   sharedBy: string[]; // Array of person IDs who share this item
   paidBy: string; // Person ID who paid for this item
 }
-
 interface Person {
   id: string;
   name: string;
 }
-
 interface Debt {
   from: string;
   to: string;
   amount: number;
 }
-
 const Index = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -36,25 +32,21 @@ const Index = () => {
   const [showItemDialog, setShowItemDialog] = useState<boolean>(false);
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
   const [selectedPayer, setSelectedPayer] = useState<string>('');
-
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
-      currency: 'THB',
+      currency: 'THB'
     }).format(amount);
   };
-
   const calculatePersonShare = (personId: string) => {
     return items.reduce((sum, item) => {
       if (item.sharedBy.includes(personId)) {
-        return sum + (item.amount / item.sharedBy.length);
+        return sum + item.amount / item.sharedBy.length;
       }
       return sum;
     }, 0);
   };
-
   const calculatePersonPaid = (personId: string) => {
     return items.reduce((sum, item) => {
       if (item.paidBy === personId) {
@@ -63,10 +55,11 @@ const Index = () => {
       return sum;
     }, 0);
   };
-
   const calculateDebts = (): Debt[] => {
-    const balances: { [personId: string]: number } = {};
-    
+    const balances: {
+      [personId: string]: number;
+    } = {};
+
     // Initialize balances
     persons.forEach(person => {
       balances[person.id] = 0;
@@ -83,31 +76,26 @@ const Index = () => {
     const debts: Debt[] = [];
     const creditors = persons.filter(p => balances[p.id] > 0.01).sort((a, b) => balances[b.id] - balances[a.id]);
     const debtors = persons.filter(p => balances[p.id] < -0.01).sort((a, b) => balances[a.id] - balances[b.id]);
-
-    let i = 0, j = 0;
+    let i = 0,
+      j = 0;
     while (i < creditors.length && j < debtors.length) {
       const creditor = creditors[i];
       const debtor = debtors[j];
       const amount = Math.min(balances[creditor.id], Math.abs(balances[debtor.id]));
-
       if (amount > 0.01) {
         debts.push({
           from: debtor.id,
           to: creditor.id,
           amount: amount
         });
-
         balances[creditor.id] -= amount;
         balances[debtor.id] += amount;
       }
-
       if (Math.abs(balances[creditor.id]) < 0.01) i++;
       if (Math.abs(balances[debtor.id]) < 0.01) j++;
     }
-
     return debts;
   };
-
   const handleAddItem = () => {
     if (newItemName.trim() && parseFloat(newItemAmount) > 0 && selectedPersons.length > 0 && selectedPayer) {
       const newItem: Item = {
@@ -115,7 +103,7 @@ const Index = () => {
         name: newItemName.trim(),
         amount: parseFloat(newItemAmount),
         sharedBy: selectedPersons,
-        paidBy: selectedPayer,
+        paidBy: selectedPayer
       };
       setItems([...items, newItem]);
       setNewItemName('');
@@ -125,22 +113,19 @@ const Index = () => {
       setShowItemDialog(false);
     }
   };
-
   const handleDeleteItem = (id: string) => {
     setItems(items.filter(item => item.id !== id));
   };
-
   const handleAddPerson = () => {
     if (newPersonName.trim()) {
       const newPerson: Person = {
         id: Date.now().toString(),
-        name: newPersonName.trim(),
+        name: newPersonName.trim()
       };
       setPersons([...persons, newPerson]);
       setNewPersonName('');
     }
   };
-
   const handleDeletePerson = (id: string) => {
     setPersons(persons.filter(person => person.id !== id));
     // Remove this person from all items
@@ -150,12 +135,10 @@ const Index = () => {
       paidBy: item.paidBy === id ? '' : item.paidBy
     })).filter(item => item.sharedBy.length > 0 && item.paidBy));
   };
-
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9.]/g, '');
     setNewItemAmount(value);
   };
-
   const handlePersonSelect = (personId: string, checked: boolean) => {
     if (checked) {
       setSelectedPersons([...selectedPersons, personId]);
@@ -163,7 +146,6 @@ const Index = () => {
       setSelectedPersons(selectedPersons.filter(id => id !== personId));
     }
   };
-
   const handleSelectAll = () => {
     if (selectedPersons.length === persons.length) {
       setSelectedPersons([]);
@@ -171,23 +153,17 @@ const Index = () => {
       setSelectedPersons(persons.map(p => p.id));
     }
   };
-
   const openItemDialog = () => {
     setShowItemDialog(true);
     setSelectedPersons([]);
     setSelectedPayer('');
   };
-
   const debts = calculateDebts();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 p-4">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in">
-            CheckBill
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in">Bill Split</h1>
           <p className="text-xl text-blue-100 animate-fade-in">
             Split bills and calculate shares with ease
           </p>
@@ -214,40 +190,25 @@ const Index = () => {
                     {/* Add Item Button */}
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">Items to Share</Label>
-                      <Button 
-                        onClick={openItemDialog} 
-                        className="w-full h-12"
-                        disabled={persons.length === 0}
-                      >
+                      <Button onClick={openItemDialog} className="w-full h-12" disabled={persons.length === 0}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add New Item
                       </Button>
-                      {persons.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center">
+                      {persons.length === 0 && <p className="text-sm text-gray-500 text-center">
                           Add people first to create items
-                        </p>
-                      )}
+                        </p>}
                     </div>
 
                     {/* Items List */}
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {items.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
+                      {items.length === 0 ? <div className="text-center py-8 text-gray-500">
                           <List className="h-12 w-12 mx-auto mb-2 opacity-50" />
                           <p>No items added yet</p>
-                        </div>
-                      ) : (
-                        items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
+                        </div> : items.map(item => <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div className="flex-1">
                               <span className="font-medium text-gray-800">{item.name}</span>
                               <div className="text-xs text-gray-500 mt-1">
-                                Shared by: {item.sharedBy.map(id => 
-                                  persons.find(p => p.id === id)?.name
-                                ).join(', ')}
+                                Shared by: {item.sharedBy.map(id => persons.find(p => p.id === id)?.name).join(', ')}
                               </div>
                               <div className="text-xs text-blue-600 mt-1">
                                 Paid by: {persons.find(p => p.id === item.paidBy)?.name}
@@ -257,18 +218,11 @@ const Index = () => {
                               <span className="font-semibold text-green-600">
                                 {formatCurrency(item.amount)}
                               </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteItem(item.id)}
-                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          </div>)}
                     </div>
                   </TabsContent>
 
@@ -277,12 +231,7 @@ const Index = () => {
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">Add New Person</Label>
                       <div className="flex gap-2">
-                        <Input
-                          placeholder="Person name"
-                          value={newPersonName}
-                          onChange={(e) => setNewPersonName(e.target.value)}
-                          className="flex-1"
-                        />
+                        <Input placeholder="Person name" value={newPersonName} onChange={e => setNewPersonName(e.target.value)} className="flex-1" />
                         <Button onClick={handleAddPerson} size="icon">
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -291,17 +240,10 @@ const Index = () => {
 
                     {/* Persons List */}
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {persons.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
+                      {persons.length === 0 ? <div className="text-center py-8 text-gray-500">
                           <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                           <p>No people added yet</p>
-                        </div>
-                      ) : (
-                        persons.map((person) => (
-                          <div
-                            key={person.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
+                        </div> : persons.map(person => <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div className="flex-1">
                               <span className="font-medium text-gray-800">{person.name}</span>
                               <div className="text-xs text-gray-500 mt-1">
@@ -310,18 +252,11 @@ const Index = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeletePerson(person.id)}
-                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleDeletePerson(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          </div>)}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -358,8 +293,7 @@ const Index = () => {
             </Card>
 
             {/* Debts Card */}
-            {debts.length > 0 && (
-              <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
+            {debts.length > 0 && <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-gray-800">
                     <ArrowRight className="h-5 w-5 text-green-600" />
@@ -367,8 +301,7 @@ const Index = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {debts.map((debt, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  {debts.map((debt, index) => <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-800">
                           {persons.find(p => p.id === debt.from)?.name}
@@ -381,51 +314,36 @@ const Index = () => {
                       <span className="font-semibold text-red-600">
                         {formatCurrency(debt.amount)}
                       </span>
-                    </div>
-                  ))}
+                    </div>)}
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
 
             {/* Reset Button */}
-            <Button
-              onClick={() => {
-                setItems([]);
-                setPersons([]);
-                setNewItemName('');
-                setNewItemAmount('');
-                setNewPersonName('');
-              }}
-              variant="outline"
-              className="w-full h-12 bg-white/20 border-white/30 text-white hover:bg-white/30 transition-all animate-scale-in"
-            >
+            <Button onClick={() => {
+            setItems([]);
+            setPersons([]);
+            setNewItemName('');
+            setNewItemAmount('');
+            setNewPersonName('');
+          }} variant="outline" className="w-full h-12 bg-white/20 border-white/30 text-white hover:bg-white/30 transition-all animate-scale-in">
               Reset Calculator
             </Button>
           </div>
         </div>
 
         {/* Item Dialog */}
-        {showItemDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        {showItemDialog && <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md bg-white">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Add New Item</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowItemDialog(false)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => setShowItemDialog(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Item Name</Label>
-                  <Input
-                    placeholder="Item name"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                  />
+                  <Input placeholder="Item name" value={newItemName} onChange={e => setNewItemName(e.target.value)} />
                 </div>
                 
                 <div className="space-y-2">
@@ -434,13 +352,7 @@ const Index = () => {
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                       ฿
                     </span>
-                    <Input
-                      type="text"
-                      placeholder="0.00"
-                      value={newItemAmount}
-                      onChange={handleAmountChange}
-                      className="pl-8"
-                    />
+                    <Input type="text" placeholder="0.00" value={newItemAmount} onChange={handleAmountChange} className="pl-8" />
                   </div>
                 </div>
 
@@ -451,11 +363,9 @@ const Index = () => {
                       <SelectValue placeholder="Select who paid" />
                     </SelectTrigger>
                     <SelectContent>
-                      {persons.map((person) => (
-                        <SelectItem key={person.id} value={person.id}>
+                      {persons.map(person => <SelectItem key={person.id} value={person.id}>
                           {person.name}
-                        </SelectItem>
-                      ))}
+                        </SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -463,51 +373,30 @@ const Index = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Who shares this item?</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAll}
-                    >
+                    <Button variant="outline" size="sm" onClick={handleSelectAll}>
                       {selectedPersons.length === persons.length ? 'Deselect All' : 'Select All'}
                     </Button>
                   </div>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {persons.map((person) => (
-                      <div key={person.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={person.id}
-                          checked={selectedPersons.includes(person.id)}
-                          onCheckedChange={(checked) => handlePersonSelect(person.id, checked as boolean)}
-                        />
+                    {persons.map(person => <div key={person.id} className="flex items-center space-x-2">
+                        <Checkbox id={person.id} checked={selectedPersons.includes(person.id)} onCheckedChange={checked => handlePersonSelect(person.id, checked as boolean)} />
                         <Label htmlFor={person.id}>{person.name}</Label>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowItemDialog(false)}
-                    className="flex-1"
-                  >
+                  <Button variant="outline" onClick={() => setShowItemDialog(false)} className="flex-1">
                     Cancel
                   </Button>
-                  <Button
-                    onClick={handleAddItem}
-                    disabled={!newItemName.trim() || !parseFloat(newItemAmount) || selectedPersons.length === 0 || !selectedPayer}
-                    className="flex-1"
-                  >
+                  <Button onClick={handleAddItem} disabled={!newItemName.trim() || !parseFloat(newItemAmount) || selectedPersons.length === 0 || !selectedPayer} className="flex-1">
                     Add Item
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </div>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
