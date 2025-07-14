@@ -189,7 +189,7 @@ const Index = () => {
     setSelectedPayer('');
   };
   const debts = calculateDebts();
-  return <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 p-4 font-inter">
+  return <div className="min-h-screen bg-gradient-to-br from-orange-300 via-orange-200 to-orange-100 p-4 font-inter">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
@@ -307,7 +307,7 @@ const Index = () => {
                   Bill Summary
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 p-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600">Total Items:</span>
