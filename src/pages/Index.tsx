@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Users, Plus, Trash2, DollarSign, List, X, ArrowRight } from 'lucide-react';
+import { Calculator, Users, Plus, Trash2, DollarSign, List, X, ArrowRight, Edit } from 'lucide-react';
 interface Item {
   id: string;
   name: string;
@@ -32,6 +32,7 @@ const Index = () => {
   const [showItemDialog, setShowItemDialog] = useState<boolean>(false);
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
   const [selectedPayer, setSelectedPayer] = useState<string>('');
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
   const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('th-TH', {
@@ -98,23 +99,49 @@ const Index = () => {
   };
   const handleAddItem = () => {
     if (newItemName.trim() && parseFloat(newItemAmount) > 0 && selectedPersons.length > 0 && selectedPayer) {
-      const newItem: Item = {
-        id: Date.now().toString(),
-        name: newItemName.trim(),
-        amount: parseFloat(newItemAmount),
-        sharedBy: selectedPersons,
-        paidBy: selectedPayer
-      };
-      setItems([...items, newItem]);
+      if (editingItem) {
+        // Update existing item
+        setItems(items.map(item => 
+          item.id === editingItem.id 
+            ? {
+                ...item,
+                name: newItemName.trim(),
+                amount: parseFloat(newItemAmount),
+                sharedBy: selectedPersons,
+                paidBy: selectedPayer
+              }
+            : item
+        ));
+      } else {
+        // Add new item
+        const newItem: Item = {
+          id: Date.now().toString(),
+          name: newItemName.trim(),
+          amount: parseFloat(newItemAmount),
+          sharedBy: selectedPersons,
+          paidBy: selectedPayer
+        };
+        setItems([...items, newItem]);
+      }
       setNewItemName('');
       setNewItemAmount('');
       setSelectedPersons([]);
       setSelectedPayer('');
+      setEditingItem(null);
       setShowItemDialog(false);
     }
   };
   const handleDeleteItem = (id: string) => {
     setItems(items.filter(item => item.id !== id));
+  };
+
+  const handleEditItem = (item: Item) => {
+    setEditingItem(item);
+    setNewItemName(item.name);
+    setNewItemAmount(item.amount.toString());
+    setSelectedPersons(item.sharedBy);
+    setSelectedPayer(item.paidBy);
+    setShowItemDialog(true);
   };
   const handleAddPerson = () => {
     if (newPersonName.trim()) {
@@ -154,6 +181,9 @@ const Index = () => {
     }
   };
   const openItemDialog = () => {
+    setEditingItem(null);
+    setNewItemName('');
+    setNewItemAmount('');
     setShowItemDialog(true);
     setSelectedPersons([]);
     setSelectedPayer('');
@@ -218,6 +248,9 @@ const Index = () => {
                               <span className="font-semibold text-green-600">
                                 {formatCurrency(item.amount)}
                               </span>
+                              <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                                <Edit className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -335,7 +368,7 @@ const Index = () => {
         {showItemDialog && <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <Card className="w-full max-w-md bg-white">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Add New Item</CardTitle>
+                <CardTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setShowItemDialog(false)}>
                   <X className="h-4 w-4" />
                 </Button>
@@ -386,11 +419,16 @@ const Index = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setShowItemDialog(false)} className="flex-1">
+                  <Button variant="outline" onClick={() => {
+                    setShowItemDialog(false);
+                    setEditingItem(null);
+                    setNewItemName('');
+                    setNewItemAmount('');
+                  }} className="flex-1">
                     Cancel
                   </Button>
-                  <Button onClick={handleAddItem} disabled={!newItemName.trim() || !parseFloat(newItemAmount) || selectedPersons.length === 0 || !selectedPayer} className="flex-1">
-                    Add Item
+                  <Button onClick={handleAddItem} className="flex-1" disabled={!newItemName.trim() || !newItemAmount || selectedPersons.length === 0 || !selectedPayer}>
+                    {editingItem ? 'Update Item' : 'Add Item'}
                   </Button>
                 </div>
               </CardContent>
