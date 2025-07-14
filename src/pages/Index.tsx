@@ -323,10 +323,7 @@ const Index = () => {
             {/* Debts Card */}
             {debts.length > 0 && <Card className="glass-card shadow-2xl border-0 animate-scale-in">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    
-                    Who Owes Whom
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-foreground">Balance</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {debts.map((debt, index) => <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
