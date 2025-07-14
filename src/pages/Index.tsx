@@ -189,12 +189,12 @@ const Index = () => {
     setSelectedPayer('');
   };
   const debts = calculateDebts();
-  return <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 p-4">
+  return <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 p-4 font-inter">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in">Bill Split</h1>
-          <p className="text-xl text-blue-100 animate-fade-in">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in drop-shadow-lg">Bill Split</h1>
+          <p className="text-xl text-orange-100 animate-fade-in drop-shadow-md">
             Split bills and calculate shares with ease
           </p>
         </div>
@@ -202,7 +202,7 @@ const Index = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Main Tabs Section */}
           <div className="space-y-6">
-            <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
+            <Card className="glass-card shadow-2xl border-0 animate-scale-in">
               <CardContent className="p-6">
                 <Tabs defaultValue="items" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
@@ -300,10 +300,10 @@ const Index = () => {
           {/* Summary Section */}
           <div className="space-y-6">
             {/* Summary Card */}
-            <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
+            <Card className="glass-card shadow-2xl border-0 animate-scale-in">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <Calculator className="h-5 w-5 text-indigo-600" />
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <Calculator className="h-5 w-5 text-primary" />
                   Bill Summary
                 </CardTitle>
               </CardHeader>
@@ -326,10 +326,10 @@ const Index = () => {
             </Card>
 
             {/* Debts Card */}
-            {debts.length > 0 && <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-scale-in">
+            {debts.length > 0 && <Card className="glass-card shadow-2xl border-0 animate-scale-in">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-800">
-                    <ArrowRight className="h-5 w-5 text-green-600" />
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <ArrowRight className="h-5 w-5 text-accent" />
                     Who Owes Whom
                   </CardTitle>
                 </CardHeader>
@@ -358,7 +358,7 @@ const Index = () => {
             setNewItemName('');
             setNewItemAmount('');
             setNewPersonName('');
-          }} variant="outline" className="w-full h-12 bg-white/20 border-white/30 text-white hover:bg-white/30 transition-all animate-scale-in">
+          }} variant="outline" className="w-full h-12 glass-card text-foreground hover:bg-white/20 transition-all animate-scale-in border-white/30">
               Reset Calculator
             </Button>
           </div>
@@ -366,7 +366,7 @@ const Index = () => {
 
         {/* Item Dialog */}
         {showItemDialog && <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md bg-white">
+            <Card className="w-full max-w-md glass-dialog">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setShowItemDialog(false)}>
