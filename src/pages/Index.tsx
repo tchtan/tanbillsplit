@@ -340,7 +340,7 @@ const Index = () => {
                     )}
 
                     {/* Items List */}
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-80 overflow-y-auto pretty-scrollbar">
                       {items.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                           <List className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -440,36 +440,28 @@ const Index = () => {
                           <p>No people added yet</p>
                         </div>
                       ) : (
-                        persons.map((person) => (
-                          <div
-                            key={person.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div className="flex-1">
-                              <span className="font-medium text-gray-800">
+                        <div className="flex flex-wrap gap-2">
+                          {persons.map((person) => (
+                            <div
+                              key={person.id}
+                              className={`flex items-center gap-1 px-3 py-1 rounded-full cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
+                              title={person.name}
+                            >
+                              <span className="font-medium text-sm select-none">
                                 {person.name}
                               </span>
-                              <div className="text-xs text-orange-600 mt-1">
-                                Owes:{" "}
-                                {formatCurrency(
-                                  calculatePersonShare(person.id)
-                                )}{" "}
-                                | Paid:{" "}
-                                {formatCurrency(calculatePersonPaid(person.id))}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeletePerson(person.id)}
-                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-0"
+                                aria-label={`Delete ${person.name}`}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                        </div>
                       )}
                     </div>
                   </TabsContent>
@@ -495,7 +487,7 @@ const Index = () => {
                         <span className="font-medium text-gray-800">
                           {persons.find((p) => p.id === debt.from)?.name}
                         </span>
-                        <ArrowRight className="h-4 w-4 text-orange-400" />
+                        <ArrowRight className="h-4 w-4 text-orange-600" />
                         <span className="font-medium text-gray-800">
                           {persons.find((p) => p.id === debt.to)?.name}
                         </span>

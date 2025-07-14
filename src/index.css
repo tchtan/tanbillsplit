@@ -173,3 +173,29 @@ All colors MUST be HSL.
 .backdrop-blur-sm {
   backdrop-filter: blur(8px);
 }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+/* Put this in your global.css or index.css */
+.pretty-scrollbar {
+  scrollbar-width: thin;            /* Firefox */
+  scrollbar-color: rgb(255, 197, 149) rgb(255, 233, 214); /* thumb color and track color for Firefox */
+}
+
+.pretty-scrollbar::-webkit-scrollbar {
+  width: 8px;                       /* width for vertical scroll */
+  height: 8px;                      /* height for horizontal scroll */
+}
+
+.pretty-scrollbar::-webkit-scrollbar-track {
+  background: #f3e8ff;              /* track color */
+  border-radius: 8px;
+}
+
+.pretty-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #c084fc;        /* thumb color */
+  border-radius: 8px;
+  border: 2px solid #f3e8ff;        /* space around thumb */
+}
