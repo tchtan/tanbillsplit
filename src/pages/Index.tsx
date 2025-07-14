@@ -13,15 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Calculator,
   Users,
   Plus,
   Trash2,
-  DollarSign,
   List,
   X,
   ArrowRight,
-  Edit,
+  WalletMinimal,
 } from "lucide-react";
 interface Item {
   id: string;
@@ -33,6 +31,7 @@ interface Item {
 interface Person {
   id: string;
   name: string;
+  color: string;
 }
 interface Debt {
   from: string;
@@ -40,8 +39,26 @@ interface Debt {
   amount: number;
 }
 const Index = () => {
-  const [items, setItems] = useState<Item[]>([]);
-  const [persons, setPersons] = useState<Person[]>([]);
+  // Load from localStorage or fallback to empty arrays
+  const [items, setItems] = useState<Item[]>(() => {
+    const saved = localStorage.getItem("billSplitItems");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [persons, setPersons] = useState<Person[]>(() => {
+    const saved = localStorage.getItem("billSplitPersons");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("billSplitItems", JSON.stringify(items));
+  }, [items]);
+
+  // Save persons to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("billSplitPersons", JSON.stringify(persons));
+  }, [persons]);
   const [newItemName, setNewItemName] = useState<string>("");
   const [newItemAmount, setNewItemAmount] = useState<string>("");
   const [newPersonName, setNewPersonName] = useState<string>("");
@@ -56,14 +73,27 @@ const Index = () => {
       maximumFractionDigits: 2,
     }).format(amount);
   };
+  // Calculate how much a person owes (their share of all items)
   const calculatePersonShare = (personId: string) => {
-    return items.reduce((sum, item) => {
+    let totalShare = 0;
+
+    items.forEach((item) => {
       if (item.sharedBy.includes(personId)) {
-        return sum + item.amount / item.sharedBy.length;
+        const shareCount = item.sharedBy.length;
+        const baseShare = Math.floor((item.amount / shareCount) * 100) / 100; // base share truncated to 2 decimals
+        const totalBase = baseShare * shareCount;
+        const remainderCents = Math.round((item.amount - totalBase) * 100);
+
+        const indexInSharedBy = item.sharedBy.indexOf(personId);
+
+        totalShare += baseShare + (indexInSharedBy < remainderCents ? 0.01 : 0);
       }
-      return sum;
-    }, 0);
+    });
+
+    return totalShare;
   };
+
+  // Calculate how much a person has paid in total
   const calculatePersonPaid = (personId: string) => {
     return items.reduce((sum, item) => {
       if (item.paidBy === personId) {
@@ -72,54 +102,63 @@ const Index = () => {
       return sum;
     }, 0);
   };
-  const calculateDebts = (): Debt[] => {
-    const balances: {
-      [personId: string]: number;
-    } = {};
 
-    // Initialize balances
-    persons.forEach((person) => {
-      balances[person.id] = 0;
+  // Calculate debts - who owes whom and how much
+  const calculateDebtsPaired = (): Debt[] => {
+    const debtsMap: { [key: string]: number } = {}; // key: `${from}-${to}`
+
+    // Step 1: Build debts map as before
+    items.forEach((item) => {
+      const shareAmount = item.amount / item.sharedBy.length;
+      const payer = item.paidBy;
+
+      item.sharedBy.forEach((personId) => {
+        if (personId !== payer) {
+          const key = `${personId}-${payer}`;
+          debtsMap[key] = (debtsMap[key] || 0) + shareAmount;
+        }
+      });
     });
 
-    // Calculate net balance for each person (what they paid minus what they owe)
-    persons.forEach((person) => {
-      const paid = calculatePersonPaid(person.id);
-      const owes = calculatePersonShare(person.id);
-      balances[person.id] = paid - owes;
-    });
+    // Step 2: Pair debts and net them
+    const processed = new Set<string>();
+    const result: Debt[] = [];
 
-    // Create debts array
-    const debts: Debt[] = [];
-    const creditors = persons
-      .filter((p) => balances[p.id] > 0.01)
-      .sort((a, b) => balances[b.id] - balances[a.id]);
-    const debtors = persons
-      .filter((p) => balances[p.id] < -0.01)
-      .sort((a, b) => balances[a.id] - balances[b.id]);
-    let i = 0,
-      j = 0;
-    while (i < creditors.length && j < debtors.length) {
-      const creditor = creditors[i];
-      const debtor = debtors[j];
-      const amount = Math.min(
-        balances[creditor.id],
-        Math.abs(balances[debtor.id])
-      );
-      if (amount > 0.01) {
-        debts.push({
-          from: debtor.id,
-          to: creditor.id,
-          amount: amount,
-        });
-        balances[creditor.id] -= amount;
-        balances[debtor.id] += amount;
+    Object.entries(debtsMap).forEach(([key, amount]) => {
+      if (processed.has(key)) return;
+
+      const [from, to] = key.split("-");
+      const reverseKey = `${to}-${from}`;
+      const reverseAmount = debtsMap[reverseKey] || 0;
+
+      if (reverseAmount > 0) {
+        // Net amounts
+        if (amount > reverseAmount) {
+          result.push({
+            from,
+            to,
+            amount: Math.round((amount - reverseAmount) * 100) / 100,
+          });
+        } else if (reverseAmount > amount) {
+          result.push({
+            from: to,
+            to: from,
+            amount: Math.round((reverseAmount - amount) * 100) / 100,
+          });
+        }
+        // Mark both keys as processed
+        processed.add(key);
+        processed.add(reverseKey);
+      } else {
+        // No reverse debt, just add this debt
+        result.push({ from, to, amount: Math.round(amount * 100) / 100 });
+        processed.add(key);
       }
-      if (Math.abs(balances[creditor.id]) < 0.01) i++;
-      if (Math.abs(balances[debtor.id]) < 0.01) j++;
-    }
-    return debts;
+    });
+
+    return result;
   };
+
   const handleAddItem = () => {
     if (
       newItemName.trim() &&
@@ -177,6 +216,7 @@ const Index = () => {
       const newPerson: Person = {
         id: Date.now().toString(),
         name: newPersonName.trim(),
+        color: pickNextAvailableColor(),
       };
       setPersons([...persons, newPerson]);
       setNewPersonName("");
@@ -221,10 +261,30 @@ const Index = () => {
     setSelectedPersons([]);
     setSelectedPayer("");
   };
-  const debts = calculateDebts();
+  const debts = React.useMemo(() => calculateDebtsPaired(), [items, persons]);
+  const colors = [
+    "bg-green-200 text-green-800",
+    "bg-blue-200 text-blue-800",
+    "bg-purple-200 text-purple-800",
+    "bg-pink-200 text-pink-800",
+    "bg-yellow-200 text-yellow-800",
+    "bg-red-200 text-red-800",
+    "bg-indigo-200 text-indigo-800",
+    "bg-teal-200 text-teal-800",
+  ];
+
+  const pickNextAvailableColor = (): string => {
+    const usedColors = persons.map((p) => p.color);
+    const availableColors = colors.filter((c) => !usedColors.includes(c));
+    // If all colors are used, just cycle back to first
+    return availableColors.length > 0
+      ? availableColors[0]
+      : colors[persons.length % colors.length];
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 p-4 font-inter">
-      <div className="w-[50vw] mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in drop-shadow-lg">
@@ -300,49 +360,55 @@ const Index = () => {
                         items.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                            onClick={() => handleEditItem(item)}
+                            className="flex flex-col p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                           >
-                            <div className="flex-1">
+                            {/* Top: Name + Price */}
+                            <div className="flex justify-between items-start w-full">
                               <span className="font-medium text-gray-800">
                                 {item.name}
                               </span>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Shared by:{" "}
-                                {item.sharedBy
-                                  .map(
-                                    (id) =>
-                                      persons.find((p) => p.id === id)?.name
-                                  )
-                                  .join(", ")}
-                              </div>
-                              <div className="text-xs text-orange-600 mt-1">
-                                Paid by:{" "}
-                                {
-                                  persons.find((p) => p.id === item.paidBy)
-                                    ?.name
-                                }
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
                               <span className="font-semibold text-green-600">
                                 {formatCurrency(item.amount)}
                               </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditItem(item)}
-                                className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteItem(item.id)}
-                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            </div>
+
+                            {/* Bottom: Shared by + Paid by */}
+                            <div className="flex justify-between flex-wrap items-center mt-1 w-full text-xs text-gray-500">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <Users className="h-4 w-4" />
+                                {item.sharedBy.map((id) => {
+                                  const person = persons.find(
+                                    (p) => p.id === id
+                                  );
+                                  if (!person) return null;
+                                  return (
+                                    <span
+                                      key={id}
+                                      className={`px-2 py-0.5 rounded-full font-medium ${person.color}`}
+                                    >
+                                      {person.name}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="flex items-center gap-1 mt-1 sm:mt-0">
+                                <WalletMinimal className="h-4 w-4" />
+                                {persons.find((p) => p.id === item.paidBy) && (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full font-medium ${
+                                      persons.find((p) => p.id === item.paidBy)
+                                        ?.color
+                                    }`}
+                                  >
+                                    {
+                                      persons.find((p) => p.id === item.paidBy)
+                                        ?.name
+                                    }
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))
@@ -413,17 +479,17 @@ const Index = () => {
 
             {/* Debts Card */}
             {debts.length > 0 && (
-              <Card className="glass-card shadow-2xl border-0 animate-scale-in">
+              <Card className="glass-card shadow-2xl border-0 animate-scale-in overflow-y-auto">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
                     Balance
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 overflow-y-auto">
                   {debts.map((debt, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 bg-orange-100 rounded-lg"
+                      className="flex flex-wrap items-center justify-between p-3 bg-orange-100 rounded-lg gap-2"
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-800">
@@ -451,13 +517,15 @@ const Index = () => {
                 ) {
                   setItems([]);
                   setPersons([]);
+                  localStorage.removeItem("billSplitItems");
+                  localStorage.removeItem("billSplitPersons");
                   setNewItemName("");
                   setNewItemAmount("");
                   setNewPersonName("");
                 }
               }}
-              variant="outline"
-              className="w-full h-12 glass-card text-foreground hover:bg-white/20 transition-all animate-scale-in border-white/30"
+              // variant="outline"
+              className="w-full h-10"
             >
               Reset Calculator
             </Button>
@@ -540,19 +608,21 @@ const Index = () => {
                   </div>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
                     {persons.map((person) => (
-                      <div
-                        key={person.id}
-                        className="flex items-center space-x-2"
+                      <label
+                        htmlFor={person.id}
+                        className="flex items-center space-x-3 cursor-pointer py-2"
                       >
-                        <Checkbox
-                          id={person.id}
-                          checked={selectedPersons.includes(person.id)}
-                          onCheckedChange={(checked) =>
-                            handlePersonSelect(person.id, checked as boolean)
-                          }
-                        />
-                        <Label htmlFor={person.id}>{person.name}</Label>
-                      </div>
+                        <div className="scale-125 ml-2">
+                          <Checkbox
+                            id={person.id}
+                            checked={selectedPersons.includes(person.id)}
+                            onCheckedChange={(checked) =>
+                              handlePersonSelect(person.id, checked as boolean)
+                            }
+                          />
+                        </div>
+                        <span>{person.name}</span>
+                      </label>
                     ))}
                   </div>
                 </div>
@@ -582,6 +652,26 @@ const Index = () => {
                   >
                     {editingItem ? "Update Item" : "Add Item"}
                   </Button>
+                  {editingItem && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Are you sure you want to delete this item?"
+                          )
+                        ) {
+                          handleDeleteItem(editingItem.id);
+                          setShowItemDialog(false);
+                          setEditingItem(null);
+                        }
+                      }}
+                      aria-label="Delete Item"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
