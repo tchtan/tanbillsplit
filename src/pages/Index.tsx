@@ -101,17 +101,13 @@ const Index = () => {
     if (newItemName.trim() && parseFloat(newItemAmount) > 0 && selectedPersons.length > 0 && selectedPayer) {
       if (editingItem) {
         // Update existing item
-        setItems(items.map(item => 
-          item.id === editingItem.id 
-            ? {
-                ...item,
-                name: newItemName.trim(),
-                amount: parseFloat(newItemAmount),
-                sharedBy: selectedPersons,
-                paidBy: selectedPayer
-              }
-            : item
-        ));
+        setItems(items.map(item => item.id === editingItem.id ? {
+          ...item,
+          name: newItemName.trim(),
+          amount: parseFloat(newItemAmount),
+          sharedBy: selectedPersons,
+          paidBy: selectedPayer
+        } : item));
       } else {
         // Add new item
         const newItem: Item = {
@@ -134,7 +130,6 @@ const Index = () => {
   const handleDeleteItem = (id: string) => {
     setItems(items.filter(item => item.id !== id));
   };
-
   const handleEditItem = (item: Item) => {
     setEditingItem(item);
     setNewItemName(item.name);
@@ -329,7 +324,7 @@ const Index = () => {
             {debts.length > 0 && <Card className="glass-card shadow-2xl border-0 animate-scale-in">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
-                    <ArrowRight className="h-5 w-5 text-accent" />
+                    
                     Who Owes Whom
                   </CardTitle>
                 </CardHeader>
@@ -420,11 +415,11 @@ const Index = () => {
 
                 <div className="flex gap-2 pt-4">
                   <Button variant="outline" onClick={() => {
-                    setShowItemDialog(false);
-                    setEditingItem(null);
-                    setNewItemName('');
-                    setNewItemAmount('');
-                  }} className="flex-1">
+                setShowItemDialog(false);
+                setEditingItem(null);
+                setNewItemName('');
+                setNewItemAmount('');
+              }} className="flex-1">
                     Cancel
                   </Button>
                   <Button onClick={handleAddItem} className="flex-1" disabled={!newItemName.trim() || !newItemAmount || selectedPersons.length === 0 || !selectedPayer}>
