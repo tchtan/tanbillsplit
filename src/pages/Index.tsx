@@ -187,11 +187,9 @@ const Index = () => {
   return <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 p-4 font-inter">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 pt-8">
+        <div className="text-center mb-8 pt-8 py-[16px]">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in drop-shadow-lg">Bill Split</h1>
-          <p className="text-xl text-orange-100 animate-fade-in drop-shadow-md">
-            Split bills and calculate shares with ease
-          </p>
+          
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
