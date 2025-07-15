@@ -412,7 +412,7 @@ const Index = () => {
                 </div>
                 {persons.length === 0 && (
                   <div className="text-center py-4 text-gray-500">
-                    <Users className="h-1 w-12 mx-auto mb-3 opacity-50" />
+                    <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No persons added yet</p>
                   </div>
                 )}
