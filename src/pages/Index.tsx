@@ -12,8 +12,9 @@ import {
   ArrowRight,
   WalletMinimal,
   Send,
-  Rewind,
   ListRestart,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 interface Item {
   id: string;
@@ -302,17 +303,64 @@ const Index = () => {
       });
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-4 font-sans">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-700 mb-2 animate-fade-in">
-            Bill Split
-          </h1>
-        </div>
+  const [headerOpen, setHeaderOpen] = useState(false);
 
-        <div className="grid gap-8">
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-4 font-sans">
+      <div className="flex-1 flex items-start justify-center p-2">
+        <div className="w-full max-w-4xl flex flex-col items-stretch">
+          {/* Header */}
+          <div className="flex items-center gap-1 py-4">
+            {/* Toggle button */}
+            <button
+              onClick={() => setHeaderOpen(!headerOpen)}
+              className={`flex items-center px-3 py-2 rounded-lg shadow-2xl transition-all bg-orange-400 ${
+                headerOpen ? "opacity-60" : "opacity-100"
+              }`}
+            >
+              <span className="font-semibold text-white p-1">Bill Split</span>
+              {headerOpen ? (
+                <ChevronLeft className="h-6 w-6 text-white" />
+              ) : (
+                <ChevronRight className="h-6 w-6 text-white" />
+              )}
+            </button>
+
+            {/* Slide-out actions container with background */}
+            <div
+              className={`flex items-center gap-2 transition-all duration-300 rounded-lg px-3 py-2 bg-orange-200 ${
+                headerOpen
+                  ? "opacity-100 w-auto ml-2"
+                  : "opacity-0 w-0 overflow-hidden"
+              }`}
+            >
+              <Button
+                onClick={() => {
+                  if (
+                    window.confirm("Are you sure you want to reset everything?")
+                  ) {
+                    setItems([]);
+                    setPersons([]);
+                    localStorage.removeItem("billSplitItems");
+                    localStorage.removeItem("billSplitPersons");
+                    setNewItemName("");
+                    setNewItemAmount("");
+                    setNewPersonName("");
+                  }
+                }}
+                className="w-24 h-9 drop-shadow-sm bg-orange-400"
+              >
+                <ListRestart className="scale-125" />
+                <p className="font-semibold text-sm">Reset</p>
+              </Button>
+              <Button
+                onClick={generateShareLink}
+                className="w-12 h-9 bg-white drop-shadow-sm text-orange-500 hover:bg-orange-100"
+              >
+                <Send className="scale-125" />
+              </Button>
+            </div>
+          </div>
           {/* Main Tabs Section */}
           <div className="space-y-4">
             <Card className="glass-card shadow-2xl border-0 animate-scale-in p-6 space-y-6">
@@ -341,11 +389,17 @@ const Index = () => {
                     </Button>
                   </div>
                 </div>
+                {persons.length === 0 && (
+                  <div className="text-center py-4 text-gray-500">
+                    <Users className="h-1 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No persons added yet</p>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2 items-center mb-4">
                   {persons.map((person) => (
                     <div
                       key={person.id}
-                      className={`flex items-center gap-2 px-3 py-1 rounded-lg shadow-inner cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-inner cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
                       title={person.name}
                     >
                       <span className="font-medium text-sm">{person.name}</span>
@@ -362,7 +416,7 @@ const Index = () => {
                   ))}
                 </div>
               </div>
-
+              <div className="border-t border-gray-200 opacity-50 -mx-6" />
               {/* Items List Section */}
               <div className="m-0">
                 <div className="flex justify-between items-end mb-4">
@@ -381,7 +435,7 @@ const Index = () => {
                 </div>
 
                 {items.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-4 text-gray-500">
                     <List className="h-12 w-12 mx-auto mb-2 opacity-50" />
                     <p>No items added yet</p>
                   </div>
@@ -448,7 +502,7 @@ const Index = () => {
             </Card>
 
             {/* Debts Card */}
-            {debts.length > 0 && (
+            {debts.length > 0 ? (
               <Card className="glass-card shadow-2xl border-0">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -488,196 +542,162 @@ const Index = () => {
                   })}
                 </CardContent>
               </Card>
+            ) : (
+              <div className="" />
             )}
-
-            {/* Reset and Share Button */}
-            <div className="flex flex-row justify-end rounded-lg cursor-pointer gap-3">
-              <Button
-                onClick={() => {
-                  if (
-                    window.confirm("Are you sure you want to reset everything?")
-                  ) {
-                    setItems([]);
-                    setPersons([]);
-                    localStorage.removeItem("billSplitItems");
-                    localStorage.removeItem("billSplitPersons");
-                    setNewItemName("");
-                    setNewItemAmount("");
-                    setNewPersonName("");
-                  }
-                }}
-                // variant="outline"
-                className="w-28 h-10 shadow-inner"
-              >
-                <ListRestart className="scale-125"></ListRestart>
-                Reset
-              </Button>
-              <Button
-                onClick={generateShareLink}
-                className="w-12 h-10 bg-white text-orange-600 shadow-inner hover:bg-orange-100"
-              >
-                <Send className="items-center scale-125" />
-              </Button>
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* Item Dialog */}
-        {showItemDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md glass-dialog">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {editingItem ? "Edit Item" : "Add New Item"}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowItemDialog(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Item Name</Label>
+      {/* Item Dialog */}
+      {showItemDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md glass-dialog">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>
+                {editingItem ? "Edit Item" : "Add New Item"}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowItemDialog(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Item Name</Label>
+                <Input
+                  placeholder="Item name"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Amount (THB)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    ฿
+                  </span>
                   <Input
-                    placeholder="Item name"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    className="bg-white"
+                    type="text"
+                    placeholder="0.00"
+                    value={newItemAmount}
+                    onChange={handleAmountChange}
+                    className="pl-8 bg-white"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>Amount (THB)</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      ฿
-                    </span>
-                    <Input
-                      type="text"
-                      placeholder="0.00"
-                      value={newItemAmount}
-                      onChange={handleAmountChange}
-                      className="pl-8 bg-white"
-                    />
-                  </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pt-1 pb-2">
+                  <Label>Who paid for this?</Label>
                 </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {persons.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => setSelectedPayer(person.id)}
+                      className={`px-4 py-1 rounded-lg shadow-inner transition-all transform ${
+                        person.color
+                      } ${
+                        selectedPayer === person.id
+                          ? "shadow-inner"
+                          : "opacity-40"
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{person.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pt-1 pb-2">
-                    <Label>Who paid for this?</Label>
-                  </div>
-                  <div className="flex flex-wrap gap-2.5">
-                    {persons.map((person) => (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Who shares this item?</Label>
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                    {selectedPersons.length === persons.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {persons.map((person) => {
+                    const isSelected = selectedPersons.includes(person.id);
+                    return (
                       <button
                         key={person.id}
                         type="button"
-                        onClick={() => setSelectedPayer(person.id)}
+                        onClick={() =>
+                          handlePersonSelect(person.id, !isSelected)
+                        }
                         className={`px-4 py-1 rounded-lg shadow-inner transition-all transform ${
                           person.color
-                        } ${
-                          selectedPayer === person.id
-                            ? "shadow-inner"
-                            : "opacity-40"
-                        }`}
+                        } ${isSelected ? "shadow-inner" : "opacity-40"}`}
                       >
                         <span className="text-sm font-medium">
                           {person.name}
                         </span>
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Who shares this item?</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAll}
-                    >
-                      {selectedPersons.length === persons.length
-                        ? "Deselect All"
-                        : "Select All"}
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2.5">
-                    {persons.map((person) => {
-                      const isSelected = selectedPersons.includes(person.id);
-                      return (
-                        <button
-                          key={person.id}
-                          type="button"
-                          onClick={() =>
-                            handlePersonSelect(person.id, !isSelected)
-                          }
-                          className={`px-4 py-1 rounded-lg shadow-inner transition-all transform ${
-                            person.color
-                          } ${isSelected ? "shadow-inner" : "opacity-40"}`}
-                        >
-                          <span className="text-sm font-medium">
-                            {person.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowItemDialog(false);
+                    setEditingItem(null);
+                    setNewItemName("");
+                    setNewItemAmount("");
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddItem}
+                  className="flex-1"
+                  disabled={
+                    !newItemName.trim() ||
+                    !newItemAmount ||
+                    selectedPersons.length === 0 ||
+                    !selectedPayer
+                  }
+                >
+                  {editingItem ? "Update Item" : "Add Item"}
+                </Button>
+                {editingItem && (
                   <Button
-                    variant="outline"
+                    variant="destructive"
+                    size="icon"
                     onClick={() => {
-                      setShowItemDialog(false);
-                      setEditingItem(null);
-                      setNewItemName("");
-                      setNewItemAmount("");
+                      if (
+                        window.confirm(
+                          "Are you sure you want to delete this item?"
+                        )
+                      ) {
+                        handleDeleteItem(editingItem.id);
+                        setShowItemDialog(false);
+                        setEditingItem(null);
+                      }
                     }}
-                    className="flex-1"
+                    aria-label="Delete Item"
                   >
-                    Cancel
+                    <Trash2 className="h-4 w-4" />
                   </Button>
-                  <Button
-                    onClick={handleAddItem}
-                    className="flex-1"
-                    disabled={
-                      !newItemName.trim() ||
-                      !newItemAmount ||
-                      selectedPersons.length === 0 ||
-                      !selectedPayer
-                    }
-                  >
-                    {editingItem ? "Update Item" : "Add Item"}
-                  </Button>
-                  {editingItem && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Are you sure you want to delete this item?"
-                          )
-                        ) {
-                          handleDeleteItem(editingItem.id);
-                          setShowItemDialog(false);
-                          setEditingItem(null);
-                        }
-                      }}
-                      aria-label="Delete Item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
