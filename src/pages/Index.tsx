@@ -22,6 +22,8 @@ interface Item {
   amount: number;
   sharedBy: string[]; // Array of person IDs who share this item
   paidBy: string; // Person ID who paid for this item
+  vat7?: boolean;
+  serviceCharge10?: boolean;
 }
 interface Person {
   id: string;
@@ -93,6 +95,9 @@ const Index = () => {
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
   const [selectedPayer, setSelectedPayer] = useState<string>("");
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [vat7, setVat7] = useState(false);
+  const [serviceCharge10, setServiceCharge10] = useState(false);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
       minimumFractionDigits: 2,
@@ -106,7 +111,8 @@ const Index = () => {
 
     // Step 1: Build debts map as before
     items.forEach((item) => {
-      const shareAmount = item.amount / item.sharedBy.length;
+      const adjustedAmount = getAdjustedAmount(item);
+      const shareAmount = adjustedAmount / item.sharedBy.length;
       const payer = item.paidBy;
 
       item.sharedBy.forEach((personId) => {
@@ -174,6 +180,8 @@ const Index = () => {
                   amount: parseFloat(newItemAmount),
                   sharedBy: selectedPersons,
                   paidBy: selectedPayer,
+                  vat7,
+                  serviceCharge10,
                 }
               : item
           )
@@ -186,6 +194,8 @@ const Index = () => {
           amount: parseFloat(newItemAmount),
           sharedBy: selectedPersons,
           paidBy: selectedPayer,
+          vat7,
+          serviceCharge10,
         };
         setItems([...items, newItem]);
       }
@@ -206,6 +216,8 @@ const Index = () => {
     setNewItemAmount(item.amount.toString());
     setSelectedPersons(item.sharedBy);
     setSelectedPayer(item.paidBy);
+    setVat7(item.vat7 || false);
+    setServiceCharge10(item.serviceCharge10 || false);
     setShowItemDialog(true);
   };
   const handleAddPerson = () => {
@@ -256,6 +268,8 @@ const Index = () => {
     setNewItemAmount("");
     setShowItemDialog(true);
     setSelectedPersons([]);
+    setVat7(false);
+    setServiceCharge10(false);
     setSelectedPayer("");
   };
   // const debts = React.useMemo(() => calculateDebtsPaired(), [items, persons]);
@@ -304,6 +318,13 @@ const Index = () => {
   };
 
   const [headerOpen, setHeaderOpen] = useState(false);
+
+  const getAdjustedAmount = (item: Item) => {
+    let adjusted = item.amount;
+    if (item.vat7) adjusted *= 1.07;
+    if (item.serviceCharge10) adjusted *= 1.1;
+    return adjusted;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-4 font-sans">
@@ -454,7 +475,7 @@ const Index = () => {
                             {item.name}
                           </span>
                           <span className="font-semibold text-green-600">
-                            {formatCurrency(item.amount)}
+                            {formatCurrency(getAdjustedAmount(item))}
                           </span>
                         </div>
 
@@ -561,6 +582,7 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowItemDialog(false)}
+                className="h-8 w-8 rounded-full bg-orange-50 text-orange-500 hover:bg-orange-100 active:bg-orange-200 shadow transition-colors"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -577,7 +599,36 @@ const Index = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Amount (THB)</Label>
+                {/* Label + Toggles in same row */}
+                <div className="flex justify-between items-center">
+                  <Label>Amount (THB)</Label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVat7(!vat7)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        vat7
+                          ? "bg-orange-200 text-orange-800 shadow-inner"
+                          : "bg-gray-200 text-gray-600 opacity-60"
+                      }`}
+                    >
+                      VAT 7%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setServiceCharge10(!serviceCharge10)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        serviceCharge10
+                          ? "bg-orange-200 text-orange-800 shadow-inner"
+                          : "bg-gray-200 text-gray-600 opacity-60"
+                      }`}
+                    >
+                      SC 10%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Full-width amount input */}
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                     ฿
@@ -587,7 +638,7 @@ const Index = () => {
                     placeholder="0.00"
                     value={newItemAmount}
                     onChange={handleAmountChange}
-                    className="pl-8 bg-white"
+                    className="pl-8 bg-white w-full"
                   />
                 </div>
               </div>
@@ -647,7 +698,6 @@ const Index = () => {
                   })}
                 </div>
               </div>
-
               <div className="flex gap-2 pt-4">
                 <Button
                   variant="outline"
