@@ -295,208 +295,168 @@ const Index = () => {
         <div className="grid gap-8">
           {/* Main Tabs Section */}
           <div className="space-y-4">
-            <Card className="glass-card shadow-2xl border-0 animate-scale-in">
-              <CardContent className="p-6">
-                <Tabs defaultValue="persons" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger
-                      value="persons"
-                      className="flex items-center gap-2"
+            <Card className="glass-card shadow-2xl border-0 animate-scale-in p-6 space-y-6">
+              {/* Persons Bar */}
+              <div>
+                <div className="flex items-end justify-between mb-6">
+                  <Label className="block text-lg font-semibold text-gray-700">
+                    Persons
+                  </Label>
+                  {/* Add Person Input + Button */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Add person"
+                      value={newPersonName}
+                      onChange={(e) => setNewPersonName(e.target.value)}
+                      className="w-32 bg-white"
+                    />
+                    <Button
+                      onClick={handleAddPerson}
+                      size="icon"
+                      aria-label="Add person"
                     >
-                      <Users className="h-4 w-4" />
-                      Persons
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="items"
-                      className="flex items-center gap-2"
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center mb-4">
+                  {persons.map((person) => (
+                    <div
+                      key={person.id}
+                      className={`flex items-center gap-2 px-3 py-1 rounded-lg shadow-inner cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
+                      title={person.name}
                     >
-                      <List className="h-4 w-4" />
-                      Items
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="items" className="space-y-4 mt-4">
-                    {/* Add Item Button */}
-                    <div className="flex space-y items-end justify-between">
-                      <div className="flex">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Shared items
-                        </Label>
-                      </div>
-                      <div className="flex">
-                        {items.length > 0 && (
-                          <Button onClick={openItemDialog} className="h-9">
-                            <Plus className="h-4 w-4" />
-                            Add New Item
-                          </Button>
-                        )}
-                      </div>
+                      <span className="font-medium text-sm">{person.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeletePerson(person.id)}
+                        className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-0"
+                        aria-label={`Delete ${person.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
+                  ))}
+                </div>
+              </div>
 
-                    {persons.length === 0 && (
-                      <p className="text-sm text-gray-500 text-center">
-                        Add people first to create items
-                      </p>
-                    )}
+              {/* Items List Section */}
+              <div className="m-0">
+                <div className="flex justify-between items-end mb-4">
+                  <Label className="text-gray-700 font-semibold text-lg">
+                    Shared Items
+                  </Label>
+                  <Button
+                    onClick={openItemDialog}
+                    className="h-9"
+                    disabled={persons.length === 0}
+                    title={persons.length === 0 ? "Add people first" : ""}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add New Item
+                  </Button>
+                </div>
 
-                    {/* Items List */}
-                    <div className="space-y-2 max-h-80 overflow-y-auto pretty-scrollbar">
-                      {items.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <List className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>No items added yet</p>
-                          <div className="flex justify-center p-4">
-                            <Button
-                              onClick={openItemDialog}
-                              className="h-10"
-                              disabled={persons.length === 0}
-                            >
-                              <Plus className="h-4 w-4" />
-                              Add New Item
-                            </Button>
-                          </div>
+                {items.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <List className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No items added yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleEditItem(item)}
+                        className="flex flex-col p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer "
+                      >
+                        {/* Name + Price */}
+                        <div className="flex justify-between items-start w-full">
+                          <span className="font-medium text-gray-800">
+                            {item.name}
+                          </span>
+                          <span className="font-semibold text-green-600">
+                            {formatCurrency(item.amount)}
+                          </span>
                         </div>
-                      ) : (
-                        items.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => handleEditItem(item)}
-                            className="flex flex-col p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                          >
-                            {/* Top: Name + Price */}
-                            <div className="flex justify-between items-start w-full">
-                              <span className="font-medium text-gray-800">
-                                {item.name}
-                              </span>
-                              <span className="font-semibold text-green-600">
-                                {formatCurrency(item.amount)}
-                              </span>
-                            </div>
 
-                            {/* Bottom: Shared by + Paid by */}
-                            <div className="flex justify-between flex-wrap items-center mt-1 w-full text-xs text-gray-500">
-                              <div className="flex items-center gap-1 flex-wrap">
-                                <Users className="h-4 w-4" />
-                                {item.sharedBy.map((id) => {
-                                  const person = persons.find(
-                                    (p) => p.id === id
-                                  );
-                                  if (!person) return null;
-                                  return (
-                                    <span
-                                      key={id}
-                                      className={`px-2 py-0.5 rounded-full font-medium ${person.color}`}
-                                    >
-                                      {person.name}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-
-                              <div className="flex items-center gap-1 mt-1 sm:mt-0">
-                                <WalletMinimal className="h-4 w-4" />
-                                {persons.find((p) => p.id === item.paidBy) && (
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full font-medium ${
-                                      persons.find((p) => p.id === item.paidBy)
-                                        ?.color
-                                    }`}
-                                  >
-                                    {
-                                      persons.find((p) => p.id === item.paidBy)
-                                        ?.name
-                                    }
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                        {/* Shared by + Paid by */}
+                        <div className="relative w-full text-xs text-gray-500 mt-1">
+                          <div className="flex flex-wrap items-center gap-1 pr-28">
+                            {" "}
+                            {/* Reserve space for Paid by */}
+                            <Users className="h-4 w-4 shrink-0" />
+                            {item.sharedBy.map((id) => {
+                              const person = persons.find((p) => p.id === id);
+                              if (!person) return null;
+                              return (
+                                <span
+                                  key={id}
+                                  className={`px-2 py-0.5 rounded-sm font-medium shadow-inner ${person.color}`}
+                                >
+                                  {person.name}
+                                </span>
+                              );
+                            })}
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="persons" className="space-y-4 mt-4">
-                    {/* Add Person Form */}
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="add new person "
-                          value={newPersonName}
-                          onChange={(e) => setNewPersonName(e.target.value)}
-                          className="flex-1 bg-white"
-                        />
-                        <Button onClick={handleAddPerson} size="icon">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Persons List */}
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {persons.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>No people added yet</p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {persons.map((person) => (
-                            <div
-                              key={person.id}
-                              className={`flex items-center gap-1 px-3 py-1 rounded-full cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
-                              title={person.name}
-                            >
-                              <span className="font-medium text-sm select-none">
-                                {person.name}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeletePerson(person.id)}
-                                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-0"
-                                aria-label={`Delete ${person.name}`}
+                          <div className="absolute top-0 right-0 flex items-center gap-1">
+                            <WalletMinimal className="h-4 w-4 shrink-0" />
+                            {persons.find((p) => p.id === item.paidBy) && (
+                              <span
+                                className={`px-2 py-0.5 rounded-sm font-medium shadow-inner ${
+                                  persons.find((p) => p.id === item.paidBy)
+                                    ?.color
+                                }`}
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                                {
+                                  persons.find((p) => p.id === item.paidBy)
+                                    ?.name
+                                }
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
 
             {/* Debts Card */}
             {debts.length > 0 && (
-              <Card className="glass-card shadow-2xl border-0 animate-scale-in overflow-y-auto">
+              <Card className="glass-card shadow-2xl border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-foreground">
                     Balance
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 overflow-y-auto">
-                  {debts.map((debt, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-wrap items-center justify-between p-3 bg-orange-100 rounded-lg gap-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800">
-                          {persons.find((p) => p.id === debt.from)?.name}
-                        </span>
-                        <ArrowRight className="h-4 w-4 text-orange-600" />
-                        <span className="font-medium text-gray-800">
-                          {persons.find((p) => p.id === debt.to)?.name}
+                <CardContent className="space-y-3">
+                  {debts.map((debt, index) => {
+                    const fromPerson = persons.find((p) => p.id === debt.from);
+                    const toPerson = persons.find((p) => p.id === debt.to);
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex flex-wrap justify-between items-center p-3 rounded-lg bg-orange-100 shadow-inner"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-gray-800">
+                            {fromPerson?.name}
+                          </span>
+                          <ArrowRight className="h-4 w-4 text-orange-400" />
+                          <span className="font-semibold text-gray-800">
+                            {toPerson?.name}
+                          </span>
+                        </div>
+                        <span className="font-bold text-orange-600 text-base">
+                          {debt.amount}
                         </span>
                       </div>
-                      <span className="font-semibold text-orange-500">
-                        {formatCurrency(debt.amount)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </CardContent>
               </Card>
             )}
