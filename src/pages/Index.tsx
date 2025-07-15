@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -18,8 +17,10 @@ import {
   Trash2,
   List,
   X,
+  Loader2,
   ArrowRight,
   WalletMinimal,
+  Send,
 } from "lucide-react";
 interface Item {
   id: string;
@@ -50,6 +51,38 @@ const Index = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [isCalculating, setIsCalculating] = React.useState(false);
+  const [debts, setDebts] = React.useState<Debt[]>([]);
+
+  React.useEffect(() => {
+    setIsCalculating(true);
+
+    // simulate calculation delay with setTimeout
+    setTimeout(() => {
+      const result = calculateDebtsPaired(); // your calculation fn
+      setDebts(result);
+      setIsCalculating(false);
+    }, 50); // 50ms delay just to show spinner, adjust or remove delay as you want
+  }, [items, persons]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const encodedData = params.get("data");
+    if (encodedData) {
+      try {
+        const jsonString = atob(decodeURIComponent(encodedData));
+        const parsed = JSON.parse(jsonString);
+
+        if (parsed.items && parsed.persons) {
+          setItems(parsed.items);
+          setPersons(parsed.persons);
+        }
+      } catch (error) {
+        console.error("Invalid share data:", error);
+      }
+    }
+  }, []);
+
   // Save items to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("billSplitItems", JSON.stringify(items));
@@ -66,41 +99,11 @@ const Index = () => {
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
   const [selectedPayer, setSelectedPayer] = useState<string>("");
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
-  };
-  // Calculate how much a person owes (their share of all items)
-  const calculatePersonShare = (personId: string) => {
-    let totalShare = 0;
-
-    items.forEach((item) => {
-      if (item.sharedBy.includes(personId)) {
-        const shareCount = item.sharedBy.length;
-        const baseShare = Math.floor((item.amount / shareCount) * 100) / 100; // base share truncated to 2 decimals
-        const totalBase = baseShare * shareCount;
-        const remainderCents = Math.round((item.amount - totalBase) * 100);
-
-        const indexInSharedBy = item.sharedBy.indexOf(personId);
-
-        totalShare += baseShare + (indexInSharedBy < remainderCents ? 0.01 : 0);
-      }
-    });
-
-    return totalShare;
-  };
-
-  // Calculate how much a person has paid in total
-  const calculatePersonPaid = (personId: string) => {
-    return items.reduce((sum, item) => {
-      if (item.paidBy === personId) {
-        return sum + item.amount;
-      }
-      return sum;
-    }, 0);
   };
 
   // Calculate debts - who owes whom and how much
@@ -261,7 +264,7 @@ const Index = () => {
     setSelectedPersons([]);
     setSelectedPayer("");
   };
-  const debts = React.useMemo(() => calculateDebtsPaired(), [items, persons]);
+  // const debts = React.useMemo(() => calculateDebtsPaired(), [items, persons]);
   const colors = [
     "bg-green-200 text-green-800",
     "bg-blue-200 text-blue-800",
@@ -280,6 +283,39 @@ const Index = () => {
     return availableColors.length > 0
       ? availableColors[0]
       : colors[persons.length % colors.length];
+  };
+
+  const shortenUrl = async (longUrl: string): Promise<string> => {
+    try {
+      const res = await fetch(
+        `https://is.gd/create.php?format=simple&url=${encodeURIComponent(
+          longUrl
+        )}`
+      );
+      if (!res.ok) throw new Error("Failed to shorten URL");
+      const shortUrl = await res.text();
+      return shortUrl;
+    } catch (error) {
+      console.error("URL shortening error:", error);
+      return longUrl; // fallback
+    }
+  };
+
+  const generateShareLink = async () => {
+    const data = {
+      items,
+      persons,
+    };
+    const jsonString = JSON.stringify(data);
+    const encoded = encodeURIComponent(btoa(jsonString)); // your encoding
+    const longUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+
+    const shortUrl = await shortenUrl(longUrl);
+
+    navigator.clipboard
+      .writeText(shortUrl)
+      .then(() => alert("Share link copied to clipboard!"))
+      .catch(() => alert("Failed to copy link."));
   };
 
   return (
@@ -308,12 +344,13 @@ const Index = () => {
                       placeholder="Add person"
                       value={newPersonName}
                       onChange={(e) => setNewPersonName(e.target.value)}
-                      className="w-32 bg-white"
+                      className="w-32 bg-white placeholder:text-gray-300"
                     />
                     <Button
                       onClick={handleAddPerson}
                       size="icon"
                       aria-label="Add person"
+                      className="drop-shadow"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -349,7 +386,7 @@ const Index = () => {
                   </Label>
                   <Button
                     onClick={openItemDialog}
-                    className="h-9"
+                    className="h-9 drop-shadow"
                     disabled={persons.length === 0}
                     title={persons.length === 0 ? "Add people first" : ""}
                   >
@@ -428,10 +465,16 @@ const Index = () => {
             {debts.length > 0 && (
               <Card className="glass-card shadow-2xl border-0">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    Balance
-                  </CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-foreground">Balance</CardTitle>
+                    {isCalculating ? (
+                      <div className="animate-spin w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full"></div>
+                    ) : (
+                      <div className="w-5 h-5" />
+                    )}
+                  </div>
                 </CardHeader>
+
                 <CardContent className="space-y-3">
                   {debts.map((debt, index) => {
                     const fromPerson = persons.find((p) => p.id === debt.from);
@@ -462,25 +505,33 @@ const Index = () => {
             )}
 
             {/* Reset Button */}
-            <Button
-              onClick={() => {
-                if (
-                  window.confirm("Are you sure you want to reset everything?")
-                ) {
-                  setItems([]);
-                  setPersons([]);
-                  localStorage.removeItem("billSplitItems");
-                  localStorage.removeItem("billSplitPersons");
-                  setNewItemName("");
-                  setNewItemAmount("");
-                  setNewPersonName("");
-                }
-              }}
-              // variant="outline"
-              className="w-full h-10"
-            >
-              Reset Calculator
-            </Button>
+            <div className="flex flex-row rounded-lg cursor-pointer gap-3">
+              <Button
+                onClick={() => {
+                  if (
+                    window.confirm("Are you sure you want to reset everything?")
+                  ) {
+                    setItems([]);
+                    setPersons([]);
+                    localStorage.removeItem("billSplitItems");
+                    localStorage.removeItem("billSplitPersons");
+                    setNewItemName("");
+                    setNewItemAmount("");
+                    setNewPersonName("");
+                  }
+                }}
+                // variant="outline"
+                className="w-full h-10 shadow-inner"
+              >
+                Reset Calculator
+              </Button>
+              <Button
+                onClick={generateShareLink}
+                className="w-12 h-10 bg-white text-orange-600 shadow-inner hover:bg-orange-100"
+              >
+                <Send className="items-center"></Send>
+              </Button>
+            </div>
           </div>
         </div>
 
