@@ -3,24 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Users,
   Plus,
   Trash2,
   List,
   X,
-  Loader2,
   ArrowRight,
   WalletMinimal,
   Send,
+  Rewind,
+  ListRestart,
 } from "lucide-react";
 interface Item {
   id: string;
@@ -70,9 +63,9 @@ const Index = () => {
     const encodedData = params.get("data");
     if (encodedData) {
       try {
-        const jsonString = atob(decodeURIComponent(encodedData));
+        const jsonString = safeBase64Decode(decodeURIComponent(encodedData)); // 👈 SAFE DECODE
         const parsed = JSON.parse(jsonString);
-
+        console.log("Parsed share data:", parsed);
         if (parsed.items && parsed.persons) {
           setItems(parsed.items);
           setPersons(parsed.persons);
@@ -285,45 +278,36 @@ const Index = () => {
       : colors[persons.length % colors.length];
   };
 
-  const shortenUrl = async (longUrl: string): Promise<string> => {
-    try {
-      const res = await fetch(
-        `https://is.gd/create.php?format=simple&url=${encodeURIComponent(
-          longUrl
-        )}`
-      );
-      if (!res.ok) throw new Error("Failed to shorten URL");
-      const shortUrl = await res.text();
-      return shortUrl;
-    } catch (error) {
-      console.error("URL shortening error:", error);
-      return longUrl; // fallback
-    }
+  const safeBase64Encode = (str: string): string => {
+    return btoa(unescape(encodeURIComponent(str)));
   };
 
-  const generateShareLink = async () => {
-    const data = {
-      items,
-      persons,
-    };
-    const jsonString = JSON.stringify(data);
-    const encoded = encodeURIComponent(btoa(jsonString)); // your encoding
-    const longUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+  const safeBase64Decode = (str: string): string => {
+    return decodeURIComponent(escape(atob(str)));
+  };
 
-    const shortUrl = await shortenUrl(longUrl);
+  const generateShareLink = () => {
+    const data = { items, persons };
+    const jsonString = JSON.stringify(data);
+    const encoded = encodeURIComponent(safeBase64Encode(jsonString)); // 👈 SAFE ENCODE
+    const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+
+    console.log("Generated share link:", url);
 
     navigator.clipboard
-      .writeText(shortUrl)
-      .then(() => alert("Share link copied to clipboard!"))
-      .catch(() => alert("Failed to copy link."));
+      .writeText(url)
+      .then(() => alert(`Share link copied to clipboard!`))
+      .catch(() => {
+        alert(`Failed to copy link. Here it is:\n${url}`);
+      });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-300 to-amber-200 p-4 font-inter">
+    <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-4 font-sans">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 animate-fade-in drop-shadow-lg">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-700 mb-2 animate-fade-in">
             Bill Split
           </h1>
         </div>
@@ -344,13 +328,14 @@ const Index = () => {
                       placeholder="Add person"
                       value={newPersonName}
                       onChange={(e) => setNewPersonName(e.target.value)}
-                      className="w-32 bg-white placeholder:text-gray-300"
+                      className="w-32 bg-white placeholder:text-gray-400"
                     />
                     <Button
                       onClick={handleAddPerson}
                       size="icon"
                       aria-label="Add person"
                       className="drop-shadow"
+                      disabled={!newPersonName.trim()} // 👈 Disable when input is empty
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -391,7 +376,7 @@ const Index = () => {
                     title={persons.length === 0 ? "Add people first" : ""}
                   >
                     <Plus className="h-4 w-4" />
-                    Add New Item
+                    Item
                   </Button>
                 </div>
 
@@ -401,12 +386,13 @@ const Index = () => {
                     <p>No items added yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {items.map((item) => (
                       <div
                         key={item.id}
                         onClick={() => handleEditItem(item)}
-                        className="flex flex-col p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer "
+                        style={{ backgroundColor: "#f1f8ff" }}
+                        className="flex flex-col p-3 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer shadow-inner"
                       >
                         {/* Name + Price */}
                         <div className="flex justify-between items-start w-full">
@@ -504,8 +490,8 @@ const Index = () => {
               </Card>
             )}
 
-            {/* Reset Button */}
-            <div className="flex flex-row rounded-lg cursor-pointer gap-3">
+            {/* Reset and Share Button */}
+            <div className="flex flex-row justify-end rounded-lg cursor-pointer gap-3">
               <Button
                 onClick={() => {
                   if (
@@ -521,15 +507,16 @@ const Index = () => {
                   }
                 }}
                 // variant="outline"
-                className="w-full h-10 shadow-inner"
+                className="w-28 h-10 shadow-inner"
               >
-                Reset Calculator
+                <ListRestart className="scale-125"></ListRestart>
+                Reset
               </Button>
               <Button
                 onClick={generateShareLink}
                 className="w-12 h-10 bg-white text-orange-600 shadow-inner hover:bg-orange-100"
               >
-                <Send className="items-center"></Send>
+                <Send className="items-center scale-125" />
               </Button>
             </div>
           </div>
@@ -558,6 +545,7 @@ const Index = () => {
                     placeholder="Item name"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
+                    className="bg-white"
                   />
                 </div>
 
@@ -572,28 +560,35 @@ const Index = () => {
                       placeholder="0.00"
                       value={newItemAmount}
                       onChange={handleAmountChange}
-                      className="pl-8"
+                      className="pl-8 bg-white"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Who paid for this?</Label>
-                  <Select
-                    value={selectedPayer}
-                    onValueChange={setSelectedPayer}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select who paid" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {persons.map((person) => (
-                        <SelectItem key={person.id} value={person.id}>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pt-1 pb-2">
+                    <Label>Who paid for this?</Label>
+                  </div>
+                  <div className="flex flex-wrap gap-2.5">
+                    {persons.map((person) => (
+                      <button
+                        key={person.id}
+                        type="button"
+                        onClick={() => setSelectedPayer(person.id)}
+                        className={`px-4 py-1 rounded-lg shadow-inner transition-all transform ${
+                          person.color
+                        } ${
+                          selectedPayer === person.id
+                            ? "shadow-inner"
+                            : "opacity-40"
+                        }`}
+                      >
+                        <span className="text-sm font-medium">
                           {person.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -609,24 +604,26 @@ const Index = () => {
                         : "Select All"}
                     </Button>
                   </div>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {persons.map((person) => (
-                      <label
-                        htmlFor={person.id}
-                        className="flex items-center space-x-3 cursor-pointer py-2"
-                      >
-                        <div className="scale-125 ml-2">
-                          <Checkbox
-                            id={person.id}
-                            checked={selectedPersons.includes(person.id)}
-                            onCheckedChange={(checked) =>
-                              handlePersonSelect(person.id, checked as boolean)
-                            }
-                          />
-                        </div>
-                        <span>{person.name}</span>
-                      </label>
-                    ))}
+                  <div className="flex flex-wrap gap-2.5">
+                    {persons.map((person) => {
+                      const isSelected = selectedPersons.includes(person.id);
+                      return (
+                        <button
+                          key={person.id}
+                          type="button"
+                          onClick={() =>
+                            handlePersonSelect(person.id, !isSelected)
+                          }
+                          className={`px-4 py-1 rounded-lg shadow-inner transition-all transform ${
+                            person.color
+                          } ${isSelected ? "shadow-inner" : "opacity-40"}`}
+                        >
+                          <span className="text-sm font-medium">
+                            {person.name}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
