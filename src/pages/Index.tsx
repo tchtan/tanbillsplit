@@ -556,7 +556,7 @@ const Index = () => {
                           </span>
                         </div>
                         <span className="font-bold text-orange-600 text-base">
-                          {debt.amount}
+                          {formatCurrency(debt.amount)}
                         </span>
                       </div>
                     );
