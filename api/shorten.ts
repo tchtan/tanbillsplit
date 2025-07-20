@@ -9,6 +9,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid long_url' });
   }
 
+  if (!process.env.BITLY_TOKEN) {
+    return res.status(500).json({ error: "Missing BITLY_TOKEN in environment" });
+  }
+
   try {
     const response = await fetch('https://api-ssl.bitly.com/v4/shorten', {
       method: 'POST',
@@ -25,11 +29,13 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("Bitly error response:", data);
       return res.status(response.status).json({ error: data.message || "Bitly error" });
     }
 
     res.status(200).json({ link: data.link });
   } catch (err) {
+    console.error("Bitly API crash:", err);
     res.status(500).json({ error: "Server error" });
   }
 }
