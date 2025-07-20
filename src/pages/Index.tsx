@@ -333,21 +333,52 @@ const Index = () => {
   const safeBase64Decode = (str: string): string => {
     return decodeURIComponent(escape(atob(str)));
   };
-  const generateShareLink = () => {
+  const shortenWithBitly = async (longUrl: string): Promise<string | null> => {
+    const accessToken = "aac055735698838c82cede7e3f05d7ed61cd810a";
+    const apiUrl = "https://api-ssl.bitly.com/v4/shorten";
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          domain: "bit.ly",
+          long_url: longUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Bitly API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.link; // shortened link
+    } catch (error) {
+      console.error("Bitly shortening failed:", error);
+      return null;
+    }
+  };
+  const generateShareLink = async () => {
     const data = { items, persons };
     const jsonString = JSON.stringify(data);
-    const encoded = encodeURIComponent(safeBase64Encode(jsonString)); // 👈 SAFE ENCODE
-    const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+    const encoded = encodeURIComponent(safeBase64Encode(jsonString));
+    const longUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
 
-    console.log("Generated share link:", url);
+    const shortUrl = await shortenWithBitly(longUrl);
+
+    const finalUrl = shortUrl || longUrl;
 
     navigator.clipboard
-      .writeText(url)
-      .then(() => alert(`Share link copied to clipboard!`))
+      .writeText(finalUrl)
+      .then(() => alert("Share link copied to clipboard!"))
       .catch(() => {
-        alert(`Failed to copy link. Here it is:\n${url}`);
+        alert(`Failed to copy. Here's the link:\n${finalUrl}`);
       });
   };
+
   const getAdjustedAmount = (item: Item) => {
     let adjusted = item.amount;
     if (item.vat7) adjusted *= 1.07;
