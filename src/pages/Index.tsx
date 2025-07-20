@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import {
   ListRestart,
   ChevronLeft,
   ChevronRight,
+  CheckCircle,
+  Circle,
 } from "lucide-react";
 interface Item {
   id: string;
@@ -36,6 +38,21 @@ interface Debt {
   amount: number;
 }
 const Index = () => {
+  const [newItemName, setNewItemName] = useState<string>("");
+  const [modalItemName, setModalItemName] = useState<string>("");
+  const [newItemAmount, setNewItemAmount] = useState<string>("");
+  const [newPersonName, setNewPersonName] = useState<string>("");
+  const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
+  const [selectedPayer, setSelectedPayer] = useState<string>("");
+  const [vat7, setVat7] = useState(false);
+  const [serviceCharge10, setServiceCharge10] = useState(false);
+  const [showItemDialog, setShowItemDialog] = useState<boolean>(false);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [isCalculating, setIsCalculating] = React.useState(false);
+  const [debts, setDebts] = React.useState<Debt[]>([]);
+  const [headerOpen, setHeaderOpen] = useState(false);
+  const amountRef = useRef<HTMLInputElement>(null);
+
   // Load from localStorage or fallback to empty arrays
   const [items, setItems] = useState<Item[]>(() => {
     const saved = localStorage.getItem("billSplitItems");
@@ -46,9 +63,6 @@ const Index = () => {
     const saved = localStorage.getItem("billSplitPersons");
     return saved ? JSON.parse(saved) : [];
   });
-
-  const [isCalculating, setIsCalculating] = React.useState(false);
-  const [debts, setDebts] = React.useState<Debt[]>([]);
 
   React.useEffect(() => {
     setIsCalculating(true);
@@ -88,15 +102,6 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem("billSplitPersons", JSON.stringify(persons));
   }, [persons]);
-  const [newItemName, setNewItemName] = useState<string>("");
-  const [newItemAmount, setNewItemAmount] = useState<string>("");
-  const [newPersonName, setNewPersonName] = useState<string>("");
-  const [showItemDialog, setShowItemDialog] = useState<boolean>(false);
-  const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
-  const [selectedPayer, setSelectedPayer] = useState<string>("");
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [vat7, setVat7] = useState(false);
-  const [serviceCharge10, setServiceCharge10] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("th-TH", {
@@ -104,8 +109,6 @@ const Index = () => {
       maximumFractionDigits: 2,
     }).format(amount);
   };
-
-  // Calculate debts - who owes whom and how much
   const calculateDebtsPaired = (): Debt[] => {
     const debtsMap: { [key: string]: number } = {}; // key: `${from}-${to}`
 
@@ -161,10 +164,9 @@ const Index = () => {
 
     return result;
   };
-
   const handleAddItem = () => {
     if (
-      newItemName.trim() &&
+      modalItemName.trim() &&
       parseFloat(newItemAmount) > 0 &&
       selectedPersons.length > 0 &&
       selectedPayer
@@ -176,7 +178,7 @@ const Index = () => {
             item.id === editingItem.id
               ? {
                   ...item,
-                  name: newItemName.trim(),
+                  name: modalItemName.trim(),
                   amount: parseFloat(newItemAmount),
                   sharedBy: selectedPersons,
                   paidBy: selectedPayer,
@@ -190,7 +192,7 @@ const Index = () => {
         // Add new item
         const newItem: Item = {
           id: Date.now().toString(),
-          name: newItemName.trim(),
+          name: modalItemName.trim(),
           amount: parseFloat(newItemAmount),
           sharedBy: selectedPersons,
           paidBy: selectedPayer,
@@ -200,9 +202,12 @@ const Index = () => {
         setItems([...items, newItem]);
       }
       setNewItemName("");
+      setModalItemName("");
       setNewItemAmount("");
       setSelectedPersons([]);
       setSelectedPayer("");
+      setVat7(false);
+      setServiceCharge10(false);
       setEditingItem(null);
       setShowItemDialog(false);
     }
@@ -212,7 +217,7 @@ const Index = () => {
   };
   const handleEditItem = (item: Item) => {
     setEditingItem(item);
-    setNewItemName(item.name);
+    setModalItemName(item.name);
     setNewItemAmount(item.amount.toString());
     setSelectedPersons(item.sharedBy);
     setSelectedPayer(item.paidBy);
@@ -232,8 +237,23 @@ const Index = () => {
     }
   };
   const handleDeletePerson = (id: string) => {
+    const involvedItems = items.filter(
+      (item) => item.paidBy === id || item.sharedBy.includes(id)
+    );
+
+    if (involvedItems.length > 0) {
+      const confirmed = window.confirm(
+        `They’re linked to ${involvedItems.length} item${
+          involvedItems.length > 1 ? "s" : ""
+        }.\n` +
+          `Removing this person might change or delete those items. Continue?`
+      );
+      if (!confirmed) return; // Exit if user cancels
+    }
+    deletePerson(id);
+  };
+  const deletePerson = (id: string) => {
     setPersons(persons.filter((person) => person.id !== id));
-    // Remove this person from all items
     setItems(
       items
         .map((item) => ({
@@ -262,17 +282,33 @@ const Index = () => {
       setSelectedPersons(persons.map((p) => p.id));
     }
   };
-  const openItemDialog = () => {
-    setEditingItem(null);
-    setNewItemName("");
-    setNewItemAmount("");
-    setShowItemDialog(true);
+  let touchTriggered = false;
+  const handleOpenModal = () => {
+    setModalItemName(newItemName);
+    setNewItemAmount(null);
     setSelectedPersons([]);
+    setSelectedPayer("");
     setVat7(false);
     setServiceCharge10(false);
-    setSelectedPayer("");
+    setShowItemDialog(true);
+    setNewItemName("");
+    setEditingItem(null);
   };
-  // const debts = React.useMemo(() => calculateDebtsPaired(), [items, persons]);
+  const handleTouchStart = () => {
+    touchTriggered = true;
+    handleOpenModal();
+
+    setTimeout(() => {
+      amountRef.current?.focus();
+    }, 100);
+  };
+  const handleClick = () => {
+    if (touchTriggered) {
+      touchTriggered = false;
+      return;
+    }
+    handleOpenModal();
+  };
   const colors = [
     "bg-green-200 text-green-800",
     "bg-blue-200 text-blue-800",
@@ -283,7 +319,6 @@ const Index = () => {
     "bg-indigo-200 text-indigo-800",
     "bg-teal-200 text-teal-800",
   ];
-
   const pickNextAvailableColor = (): string => {
     const usedColors = persons.map((p) => p.color);
     const availableColors = colors.filter((c) => !usedColors.includes(c));
@@ -292,15 +327,12 @@ const Index = () => {
       ? availableColors[0]
       : colors[persons.length % colors.length];
   };
-
   const safeBase64Encode = (str: string): string => {
     return btoa(unescape(encodeURIComponent(str)));
   };
-
   const safeBase64Decode = (str: string): string => {
     return decodeURIComponent(escape(atob(str)));
   };
-
   const generateShareLink = () => {
     const data = { items, persons };
     const jsonString = JSON.stringify(data);
@@ -316,9 +348,6 @@ const Index = () => {
         alert(`Failed to copy link. Here it is:\n${url}`);
       });
   };
-
-  const [headerOpen, setHeaderOpen] = useState(false);
-
   const getAdjustedAmount = (item: Item) => {
     let adjusted = item.amount;
     if (item.vat7) adjusted *= 1.07;
@@ -349,10 +378,10 @@ const Index = () => {
 
             {/* Slide-out actions container with background */}
             <div
-              className={`flex items-center gap-2 transition-all duration-300 rounded-lg px-3 py-2 bg-orange-200 ${
+              className={`flex items-center gap-2 rounded-lg px-3 py-2 bg-orange-200 transition-all duration-300 ease-in-out transform origin-left ${
                 headerOpen
-                  ? "opacity-100 w-auto ml-2"
-                  : "opacity-0 w-0 overflow-hidden"
+                  ? "opacity-100 scale-x-100 ml-2"
+                  : "opacity-0 scale-x-0 ml-0"
               }`}
             >
               <Button
@@ -365,6 +394,7 @@ const Index = () => {
                     localStorage.removeItem("billSplitItems");
                     localStorage.removeItem("billSplitPersons");
                     setNewItemName("");
+                    setModalItemName("");
                     setNewItemAmount("");
                     setNewPersonName("");
                   }
@@ -444,15 +474,25 @@ const Index = () => {
                   <Label className="text-gray-700 font-semibold text-lg">
                     Shared Items
                   </Label>
-                  <Button
-                    onClick={openItemDialog}
-                    className="h-9 drop-shadow"
-                    disabled={persons.length === 0}
-                    title={persons.length === 0 ? "Add people first" : ""}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Item
-                  </Button>
+                  {/* Add Item Input + Button */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      placeholder="Add Item"
+                      className="w-32 bg-white placeholder:text-gray-400"
+                    />
+                    <Button
+                      disabled={!newItemName.trim()}
+                      onTouchStart={handleTouchStart}
+                      onClick={handleClick}
+                      size="icon"
+                      className="drop-shadow"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {items.length === 0 ? (
@@ -592,8 +632,8 @@ const Index = () => {
                 <Label>Item Name</Label>
                 <Input
                   placeholder="Item name"
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
+                  value={modalItemName}
+                  onChange={(e) => setModalItemName(e.target.value)}
                   className="bg-white"
                 />
               </div>
@@ -634,7 +674,11 @@ const Index = () => {
                     ฿
                   </span>
                   <Input
+                    ref={amountRef}
                     type="text"
+                    inputMode="decimal" // helps on mobile keyboards
+                    pattern="[0-9]*" // iOS-specific help
+                    step="0.01" // optional for decimals
                     placeholder="0.00"
                     value={newItemAmount}
                     onChange={handleAmountChange}
@@ -670,10 +714,27 @@ const Index = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Who shares this item?</Label>
-                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                    {selectedPersons.length === persons.length
-                      ? "Deselect All"
-                      : "Select All"}
+                  <Button
+                    variant="outlineNoHover"
+                    className={`gap-1 ${
+                      selectedPersons.length === persons.length
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    }`}
+                    size="sm"
+                    onClick={handleSelectAll}
+                  >
+                    {selectedPersons.length === persons.length ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        All
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="w-4 h-4" />
+                        All
+                      </>
+                    )}
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
@@ -705,6 +766,7 @@ const Index = () => {
                     setShowItemDialog(false);
                     setEditingItem(null);
                     setNewItemName("");
+                    setModalItemName("");
                     setNewItemAmount("");
                   }}
                   className="flex-1"
@@ -715,7 +777,7 @@ const Index = () => {
                   onClick={handleAddItem}
                   className="flex-1"
                   disabled={
-                    !newItemName.trim() ||
+                    !modalItemName.trim() ||
                     !newItemAmount ||
                     selectedPersons.length === 0 ||
                     !selectedPayer
