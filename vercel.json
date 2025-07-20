@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/shorten.ts": {
+      "runtime": "edge"
+    }
+  }
+}
