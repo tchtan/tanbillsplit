@@ -334,30 +334,24 @@ const Index = () => {
     return decodeURIComponent(escape(atob(str)));
   };
   const shortenWithBitly = async (longUrl: string): Promise<string | null> => {
-    const accessToken = "aac055735698838c82cede7e3f05d7ed61cd810a";
-    const apiUrl = "https://api-ssl.bitly.com/v4/shorten";
-
     try {
-      const response = await fetch(apiUrl, {
+      const response = await fetch("/api/shorten", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          domain: "bit.ly",
-          long_url: longUrl,
-        }),
+        body: JSON.stringify({ long_url: longUrl }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error(`Bitly API error: ${response.status}`);
+        console.error("Bitly error:", data.error);
+        return null;
       }
 
-      const data = await response.json();
-      return data.link; // shortened link
-    } catch (error) {
-      console.error("Bitly shortening failed:", error);
+      return data.link;
+    } catch (err) {
+      console.error("Network error:", err);
       return null;
     }
   };
