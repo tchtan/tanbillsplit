@@ -361,18 +361,25 @@ const Index = () => {
     const encoded = encodeURIComponent(safeBase64Encode(jsonString));
     const longUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
 
-    const shortUrl = await shortenWithBitly(longUrl);
+    let finalUrl = longUrl;
+    try {
+      const shortUrl = await shortenWithBitly(longUrl);
+      if (shortUrl) finalUrl = shortUrl;
+    } catch {
+      // ignore shortening errors, use longUrl as fallback
+    }
 
-    const finalUrl = shortUrl || longUrl;
-
-    navigator.clipboard
-      .writeText(finalUrl)
-      .then(() => alert("Share link copied to clipboard!"))
-      .catch(() => {
-        alert(`Failed to copy. Here's the link:\n${finalUrl}`);
-      });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(finalUrl)
+        .then(() => alert("Share link copied to clipboard!"))
+        .catch(() => alert(`Failed to copy link. Here it is:\n${finalUrl}`));
+    } else {
+      alert(
+        `Your browser doesn't support copying automatically. Here's the link:\n${finalUrl}`
+      );
+    }
   };
-
   const getAdjustedAmount = (item: Item) => {
     let adjusted = item.amount;
     if (item.vat7) adjusted *= 1.07;
