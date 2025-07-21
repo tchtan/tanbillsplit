@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Circle,
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 interface Item {
   id: string;
   name: string;
@@ -77,12 +78,6 @@ const Index = () => {
       setIsCalculating(false);
     }, 50); // 50ms delay just to show spinner, adjust or remove delay as you want
   }, [items, persons]);
-
-  useEffect(() => {
-    if (showCopyModal && copyBtnRef.current) {
-      copyBtnRef.current.click();
-    }
-  }, [showCopyModal]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -255,7 +250,9 @@ const Index = () => {
         `They’re linked to ${involvedItems.length} item${
           involvedItems.length > 1 ? "s" : ""
         }.\n` +
-          `Removing this person might change or delete ${involvedItems.length > 1 ? "them" : "it"}.`
+          `Removing this person might change or delete ${
+            involvedItems.length > 1 ? "them" : "it"
+          }.`
       );
       if (!confirmed) return; // Exit if user cancels
     }
@@ -383,21 +380,24 @@ const Index = () => {
     }
   };
   const handleManualCopy = () => {
-    console.log("handleManualCopy fired");
     if (!shortenUrl) {
-      console.warn("shortenUrl is missing");
       return;
     }
 
     navigator.clipboard
       .writeText(shortenUrl)
       .then(() => {
-        console.log("Copied to clipboard:", shortenUrl);
-        alert("Share link copied to clipboard!");
-        setShowCopyModal(false);
+        toast({
+          title: "Copied to clipboard!",
+          description: "You can now paste the link anywhere.",
+        });
       })
       .catch((err) => {
-        console.error("Clipboard error", err);
+        toast({
+          variant: "destructive",
+          title: "Failed to copy",
+          description: shortenUrl,
+        });
       });
   };
 
@@ -874,7 +874,7 @@ const Index = () => {
                 onClick={() => setShowCopyModal(false)}
                 className="h-6 w-6 rounded-full bg-orange-50 text-orange-500 shadow transition-colors"
               >
-              <X className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex gap-3">
