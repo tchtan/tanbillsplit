@@ -51,7 +51,10 @@ const Index = () => {
   const [isCalculating, setIsCalculating] = React.useState(false);
   const [debts, setDebts] = React.useState<Debt[]>([]);
   const [headerOpen, setHeaderOpen] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [shortenUrl, setShortenUrl] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
+  const copyBtnRef = useRef<HTMLButtonElement>(null);
 
   // Load from localStorage or fallback to empty arrays
   const [items, setItems] = useState<Item[]>(() => {
@@ -74,6 +77,12 @@ const Index = () => {
       setIsCalculating(false);
     }, 50); // 50ms delay just to show spinner, adjust or remove delay as you want
   }, [items, persons]);
+
+  useEffect(() => {
+    if (showCopyModal && copyBtnRef.current) {
+      copyBtnRef.current.click();
+    }
+  }, [showCopyModal]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -246,7 +255,7 @@ const Index = () => {
         `They’re linked to ${involvedItems.length} item${
           involvedItems.length > 1 ? "s" : ""
         }.\n` +
-          `Removing this person might change or delete those items. Continue?`
+          `Removing this person might change or delete ${involvedItems.length > 1 ? "them" : "it"}.`
       );
       if (!confirmed) return; // Exit if user cancels
     }
@@ -361,25 +370,37 @@ const Index = () => {
     const encoded = encodeURIComponent(safeBase64Encode(jsonString));
     const longUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
 
-    let finalUrl = longUrl;
+    let shortenUrl = longUrl;
     try {
       const shortUrl = await shortenWithBitly(longUrl);
-      if (shortUrl) finalUrl = shortUrl;
-    } catch {
-      // ignore shortening errors, use longUrl as fallback
-    }
+      if (shortUrl) shortenUrl = shortUrl;
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(finalUrl)
-        .then(() => alert("Share link copied to clipboard!"))
-        .catch(() => alert(`Failed to copy link. Here it is:\n${finalUrl}`));
-    } else {
-      alert(
-        `Your browser doesn't support copying automatically. Here's the link:\n${finalUrl}`
-      );
+      setShortenUrl(shortenUrl || longUrl);
+    } catch {
+      setShortenUrl(longUrl);
+    } finally {
+      setShowCopyModal(true);
     }
   };
+  const handleManualCopy = () => {
+    console.log("handleManualCopy fired");
+    if (!shortenUrl) {
+      console.warn("shortenUrl is missing");
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(shortenUrl)
+      .then(() => {
+        console.log("Copied to clipboard:", shortenUrl);
+        alert("Share link copied to clipboard!");
+        setShowCopyModal(false);
+      })
+      .catch((err) => {
+        console.error("Clipboard error", err);
+      });
+  };
+
   const getAdjustedAmount = (item: Item) => {
     let adjusted = item.amount;
     if (item.vat7) adjusted *= 1.07;
@@ -839,6 +860,39 @@ const Index = () => {
                 )}
               </div>
             </CardContent>
+          </Card>
+        </div>
+      )}
+      {showCopyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-sm p-4 glass-dialog">
+            <div className="flex justify-between">
+              <h2 className="text-lg font-semibold mb-4">Shareable Link</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowCopyModal(false)}
+                className="h-6 w-6 rounded-full bg-orange-50 text-orange-500 shadow transition-colors"
+              >
+              <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex gap-3">
+              <Input
+                type="text"
+                readOnly
+                value={shortenUrl}
+                className="w-full text-sm text-gray-700 shadow-inner"
+              />
+              <Button
+                variant="outline"
+                ref={copyBtnRef}
+                onClick={handleManualCopy}
+                className="bg-orange-400 hover:bg-orange-500 text-white"
+              >
+                Copy
+              </Button>
+            </div>
           </Card>
         </div>
       )}
