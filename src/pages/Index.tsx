@@ -388,8 +388,8 @@ const Index = () => {
       .writeText(shortenUrl)
       .then(() => {
         toast({
-          title: "Copied to clipboard!",
-          description: "You can now paste the link anywhere.",
+          variant: "orange",
+          title: "Copied to clipboard",
         });
       })
       .catch((err) => {
@@ -503,15 +503,15 @@ const Index = () => {
                   {persons.map((person) => (
                     <div
                       key={person.id}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-inner cursor-default select-none transition-colors hover:brightness-90 ${person.color}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-inner cursor-default select-none transition-colors ${person.color}`}
                       title={person.name}
                     >
                       <span className="font-medium text-sm">{person.name}</span>
                       <Button
-                        variant="ghost"
+                        variant="outlineNoHover"
                         size="icon"
                         onClick={() => handleDeletePerson(person.id)}
-                        className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-0"
+                        className="h-6 w-6 text-red-500 rounded-full p-0"
                         aria-label={`Delete ${person.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
