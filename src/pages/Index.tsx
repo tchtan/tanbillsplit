@@ -442,10 +442,6 @@ const Index = () => {
                   if (
                     window.confirm("Are you sure you want to reset everything?")
                   ) {
-                    toast({
-          variant: "orange",
-          title: "Copied to clipboard",
-        });
                     setItems([]);
                     setPersons([]);
                     localStorage.removeItem("billSplitItems");
