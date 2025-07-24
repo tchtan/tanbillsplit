@@ -17,6 +17,7 @@ import {
   ChevronRight,
   CheckCircle,
   Circle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 interface Item {
@@ -54,6 +55,7 @@ const Index = () => {
   const [headerOpen, setHeaderOpen] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [shortenUrl, setShortenUrl] = useState("");
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const copyBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -362,6 +364,7 @@ const Index = () => {
     }
   };
   const generateShareLink = async () => {
+    setIsGeneratingLink(true);
     const data = { items, persons };
     const jsonString = JSON.stringify(data);
     const encoded = encodeURIComponent(safeBase64Encode(jsonString));
@@ -377,6 +380,7 @@ const Index = () => {
       setShortenUrl(longUrl);
     } finally {
       setShowCopyModal(true);
+      setIsGeneratingLink(false);
     }
   };
   const handleManualCopy = () => {
@@ -459,9 +463,13 @@ const Index = () => {
               </Button>
               <Button
                 onClick={generateShareLink}
-                className="w-12 h-9 bg-white drop-shadow-sm text-orange-500 hover:bg-orange-100"
+                disabled={isGeneratingLink}
+                className="w-14 h-9 bg-white drop-shadow-sm text-orange-500 hover:bg-orange-100"
               >
                 <Send className="scale-125" />
+                {isGeneratingLink && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
               </Button>
             </div>
           </div>
